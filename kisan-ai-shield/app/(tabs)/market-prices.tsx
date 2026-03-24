@@ -1,10 +1,10 @@
 import { View, Text, StyleSheet } from 'react-native';
 
-export default function DashboardScreen() {
+export default function MarketPricesScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Dashboard</Text>
-      <Text style={styles.subtitle}>Welcome to Kisan AI Shield</Text>
+      <Text style={styles.title}>Market Prices</Text>
+      <Text style={styles.subtitle}>Live mandi rates</Text>
     </View>
   );
 }
@@ -12,17 +12,18 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: '#F5FCFF',
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#333',
+    color: '#E65100',
   },
   subtitle: {
     fontSize: 16,
     color: '#666',
+    marginTop: 8,
   },
 });

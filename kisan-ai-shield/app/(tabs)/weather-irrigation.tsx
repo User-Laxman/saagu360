@@ -1,10 +1,10 @@
 import { View, Text, StyleSheet } from 'react-native';
 
-export default function DashboardScreen() {
+export default function WeatherIrrigationScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Dashboard</Text>
-      <Text style={styles.subtitle}>Welcome to Kisan AI Shield</Text>
+      <Text style={styles.title}>Weather & Irrigation</Text>
+      <Text style={styles.subtitle}>Smart watering advice</Text>
     </View>
   );
 }
@@ -12,17 +12,18 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: '#F5FCFF',
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#333',
+    color: '#0277BD',
   },
   subtitle: {
     fontSize: 16,
     color: '#666',
+    marginTop: 8,
   },
 });
