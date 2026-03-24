@@ -1,0 +1,544 @@
+Alright — now we’re going full depth mode. This will act like your “zero → complete execuƟon” 
+master guide. You can directly paste this into Word. 
+ 
+茢
+茣
+茤
+茥 Kisan AI Shield – Complete A → Z Project Guide 
+ 
+1. �
+�
+� What Exactly Is This Project? 
+Simple View 
+Kisan AI Shield is a smart assistant for farmers that helps them: 
+ 
+Detect crop diseases using camera 
+ 
+Decide when to water crops 
+ 
+Know market prices 
+ 
+Get weather alerts 
+ 
+Discover government schemes 
+Technical View 
+A mobile applicaƟon (Expo + React NaƟve) integrated with: 
+ 
+AI/ML models (for disease detecƟon) 
+ 
+APIs (weather, market data) 
+ 
+Firebase backend (auth + database) 
+ 
+Modular architecture (scalable & team-friendly) 
+ 
+2. 蚘
+蚓
+蚔
+蚕
+蚖
+蚗 Problem You Are Solving 
+Farmers face: 
+ 
+ No early disease detecƟon 
+ 
+ No accurate irrigaƟon guidance 
+ 
+ No real-Ɵme market price visibility 
+ 
+ No awareness of schemes 
+ 
+ Climate unpredictability 
+踰
+踱
+踲
+踳 Your app = Decision Support System for Farmers 
+ 
+3. 굧
+�
+�
+�
+�
+�
+�
+�
+�
+�
+� Core Features (Your Product Pillars) 
+1. Disease DetecƟon 
+
+ 
+Input: Leaf image (camera/upload) 
+ 
+Output: Disease name + soluƟon 
+ 
+Tech: TensorFlow Lite model 
+2. Weather + IrrigaƟon 
+ 
+Input: LocaƟon 
+ 
+Output: Rain predicƟon + irrigaƟon advice 
+ 
+Tech: Weather API 
+3. Market Prices 
+ 
+Input: Crop type 
+ 
+Output: Current mandi prices 
+ 
+Tech: Agri APIs / mock data 
+4. Climate Alerts 
+ 
+Extreme weather noƟﬁcaƟons 
+5. Government Schemes 
+ 
+StaƟc + dynamic scheme data 
+ 
+4. 誥
+誦
+誧
+誨
+誫
+誩
+說 Tech Stack (FoundaƟon Layer) 
+Frontend 
+ 
+Expo (React NaƟve) 
+ 
+TypeScript (opƟonal but beƩer) 
+Backend 
+ 
+Firebase 
+o 
+AuthenƟcaƟon 
+o 
+Firestore Database 
+AI/ML 
+ 
+TensorFlow Lite (.ƞlite model) 
+APIs 
+ 
+Weather API (OpenWeather / IMD) 
+ 
+Market APIs (or mock JSON) 
+ 
+5. 굶
+굷 Project Folder Structure (Clean Architecture) 
+
+Refer below 
+踰
+踱
+踲
+踳 Think: 
+ 
+UI → components 
+ 
+Logic → hooks/services 
+ 
+Data → ﬁrebase 
+ 
+6. 
+
+ Setup From Scratch (Step-by-Step) 
+Step 1: Create App 
+npx create-expo-app@latest kisan-ai-shield 
+cd kisan-ai-shield 
+npm install 
+Step 2: Run App 
+npx expo start 
+ 
+Step 3: Setup Firebase 
+1. Go to Firebase Console 
+2. Create project 
+3. Enable: 
+o 
+AuthenƟcaƟon 
+o 
+Firestore Database 
+Create ﬁle: 
+// ﬁrebase/conﬁg.js 
+import { iniƟalizeApp } from "ﬁrebase/app"; 
+ 
+const ﬁrebaseConﬁg = { 
+  apiKey: "YOUR_KEY", 
+  authDomain: "YOUR_DOMAIN", 
+  projectId: "YOUR_ID", 
+}; 
+ 
+export const app = iniƟalizeApp(ﬁrebaseConﬁg); 
+
+ 
+Step 4: Environment Variables 
+Create .env 
+WEATHER_API_KEY=your_key 
+ 
+7. 뱅
+뱆
+뱇
+뱈
+뱉
+뱊
+뱋
+뱌 AI Model IntegraƟon (Disease DetecƟon) 
+Basic Flow 
+1. User takes photo 
+2. Image → ML model 
+3. Model → predicƟon 
+4. Show result 
+Concept (Important) 
+ 
+Model = trained brain 
+ 
+Input = image 
+ 
+Output = label (disease) 
+ 
+8. 艒 API IntegraƟon 
+Weather Example 
+fetch(`hƩps://api.weather.com/...`) 
+Output: 
+ 
+Temperature 
+ 
+Rain probability 
+ 
+Market Prices 
+ 
+Use API or mock JSON 
+ 
+9. 軁
+軂 Team Roles (CRITICAL FOR SUCCESS) 
+꾃 Member A – Project Lead 
+ 
+Setup project 
+ 
+Manage GitHub 
+ 
+Integrate all modules 
+
+밄 Member B – AI Engineer 
+ 
+Handle disease detecƟon 
+ 
+OpƟmize model 
+밃 Member C – Backend/API 
+ 
+Firebase setup 
+ 
+API integraƟons 
+꾂 Member D – UI/UX 
+ 
+Build screens 
+ 
+Improve user experience 
+ 
+10. �
+�
+�
+�
+� Development Workﬂow 
+Daily Flow 
+1. Pull latest code 
+2. Create branch 
+3. Work 
+4. Push 
+5. Create PR 
+6. Merge 
+ 
+11. 膆
+껄
+껅
+껆 GitHub Strategy 
+Branches 
+ 
+main → stable 
+ 
+feature/* → development 
+Example 
+feature/disease-detecƟon 
+feature/weather-api 
+ 
+12. �
+�
+�
+�
+� Coding Best PracƟces 
+ 
+Keep funcƟons small 
+ 
+Use reusable components 
+ 
+Avoid hardcoding 
+
+ 
+Use .env for secrets 
+ 
+13. 깳
+깶
+깷
+깴
+깵
+깸 UI Design Basics 
+ 
+Large buƩons (farmer friendly) 
+ 
+Minimal text 
+ 
+Use icons + voice (opƟonal) 
+ 
+14. 
+
+ Common Mistakes (Avoid These) 
+ 
+ Working on same ﬁle → merge conﬂicts 
+ 
+ No branch strategy 
+ 
+ Hardcoding API keys 
+ 
+ No tesƟng before merge 
+ 
+15. 띙
+띚
+띞
+띟
+띛
+띜
+띝 Final IntegraƟon Phase 
+Combine: 
+ 
+AI module 
+ 
+API module 
+ 
+UI 
+Test: 
+ 
+Camera 
+ 
+API calls 
+ 
+NavigaƟon 
+ 
+16. �
+� Final Output (What Judges See) 
+ 
+Working app 
+ 
+Clean UI 
+ 
+Real-world impact 
+ 
+GitHub repo (clean commits) 
+ 
+17. �
+�
+� How to Think Like a Builder 
+
+Instead of: 
+“How to code this?” 
+Think: 
+“What problem am I solving in this step?” 
+ 
+18. 꽅
+꽆 Your ExecuƟon Strategy (Most Important) 
+Phase 1 (0–6 hrs) 
+ 
+Setup project + UI skeleton 
+Phase 2 (6–24 hrs) 
+ 
+Build features separately 
+Phase 3 (24–40 hrs) 
+ 
+IntegraƟon 
+Phase 4 (40–48 hrs) 
+ 
+TesƟng + polish 
+ 
+19. 蛹
+蛻
+蛺 Final Checklist 
+膆
+ App runs 
+膆
+ All features visible 
+膆
+ No crashes 
+膆
+ GitHub clean 
+膆
+ Demo ready 
+ 
+띙
+띚
+띞
+띟
+띛
+띜
+띝 Final Thought 
+This project is not about: 
+“Building everything perfectly” 
+It’s about: 
+Building something real, usable, and working under constraints 
+ 
+Git Set Up 
+Step 1: Create the Repository  
+
+1. Go to [github.com](hƩps://github.com) and create a **new repository** named `kisan-ai-
+shield`. 
+2. Make it Public (easier for hackathon judges to view). 
+3. Add a README.md (you can edit it later). 
+4. Do NOT iniƟalize with any ﬁles yet — we'll push the Expo app next. 
+5. Invite your 3 teammates as Collaborators (Seƫngs → Collaborators → Add people). Give 
+them Write access. 
+Step 2: Recommended Folder Structure (Best for Expo + React NaƟve + Firebase) 
+This structure follows 2026 Expo best pracƟces and keeps modules clean for parallel work: 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+kisan-ai-shield/ 
+├── app/                          # Expo Router screens (if using) or src/screens 
+│   ├── (tabs)/                   # BoƩom tabs navigaƟon 
+│   │   ├── dashboard.tsx 
+│   │   ├── disease-scan.tsx 
+│   │   ├── weather-irrigaƟon.tsx 
+│   │   ├── market-prices.tsx 
+│   │   └── schemes.tsx 
+├── assets/                       # Images, icons, models 
+│   ├── icons/ 
+│   ├── models/                   # .ƞlite model ﬁle (disease detecƟon) 
+│   └── images/ 
+
+├── components/                   # Reusable UI components 
+│   ├── common/                   # BuƩon, Card, VoiceBuƩon etc. 
+│   └── feature-speciﬁc/ 
+├── constants/                    # API keys (but use .env), colors, farm data 
+├── ﬁrebase/                     # Firebase conﬁg & services 
+│   ├── conﬁg.js 
+│   ├── auth.js 
+│   └── database.js 
+├── hooks/                        # Custom hooks (useFarmHealth, useWeather etc.) 
+├── models/                       # ML model loading logic 
+├── screens/                      # If not using Expo Router 
+├── services/                     # API calls (IMD, UPAg, mock schemes) 
+├── uƟls/                        # Helpers (formatPrice, calculateRiskScore) 
+├── .env.example                  # For Firebase keys (never commit real keys) 
+├── .giƟgnore                    # Important! 
+├── app.json 
+├── eas.json                      # If using EAS Build later 
+├── package.json 
+├── README.md 
+└── babel.conﬁg.js 
+Step 3: Branching Strategy (Hackathon-Friendly – Simple & Fast) 
+Use GitHub Flow (lightweight trunk-based) – perfect for 48-hour hackathons: 
+ 
+- main→ Protected branch. Only stable, reviewed code lives here. 
+- feature/<name>→ Every task gets its own short-lived branch. 
+  - Examples: 
+    - `feature/disease-detecƟon` 
+    - `feature/weather-api-integraƟon` 
+    - `feature/market-prices` 
+    - `feature/schemes-module` 
+    - `feature/dashboard-uniﬁcaƟon` 
+
+    - `feature/ui-polish` 
+    - `feature/voice-alerts` 
+ 
+Rules: 
+- Never push directly to `main`. 
+- Create a new feature branch from the latest `main`. 
+- Keep branches small (1–2 features max). 
+- AŌer work → create Pull Request (PR) → get at least **1 approval** from another 
+teammate → merge with **Squash and merge** (clean history). 
+Step 4: .giƟgnore (CriƟcal – Copy This) 
+Create `.giƟgnore` in root with this content: 
+# Expo / React NaƟve 
+node_modules/ 
+.expo/ 
+dist/ 
+web-build/ 
+*.ƞlite   # if model is large, but small one is ok 
+ 
+ 
+# Environment 
+.env 
+.env.local 
+ 
+# Logs 
+npm-debug.log* 
+yarn-debug.log* 
+yarn-error.log* 
+ 
+# OS 
+.DS_Store 
+
+Thumbs.db 
+ 
+# IDE 
+.vscode/ 
+.idea/ 
+ 
+Step 5: IniƟal Setup Commands (Do This AŌer CreaƟng Repo) 
+Member A (Project Lead) runs these: 
+npx create-expo-app@latest kisan-ai-shield --template 
+cd kisan-ai-shield 
+# IniƟalize git and connect to GitHub 
+git init 
+git branch -M main 
+git remote add origin hƩps://github.com/YOUR_USERNAME/kisan-ai-shield.git 
+# Add .giƟgnore and ﬁrst commit 
+git add . 
+git commit -m "IniƟal commit: Expo app setup with folder structure" 
+git push -u origin main 
+Then everyone clones: 
+git clone hƩps://github.com/YOUR_USERNAME/kisan-ai-shield.git 
+cd kisan-ai-shield 
+npm install 
+ 
+Step 6: CollaboraƟon Workﬂow (Daily Rules) 
+1. Every morning: 
+   - `git checkout main` 
+   - `git pull origin main` 
+   - `git checkout -b feature/your-task-name` 
+2. Work on your feature. 
+
+3. Commit oŌen with clear messages: 
+   - `git commit -m "feat(disease): integrate TF Lite model with camera"` 
+   - `git commit -m "ﬁx(weather): handle oﬄine IMD API fallback"` 
+4. Push & create PR: 
+   - `git push origin feature/your-task-name` 
+   - Go to GitHub → “Compare & pull request” 
+5. PR Rules: 
+   - Title: `feat: Disease detecƟon module` 
+   - DescripƟon: List what you did + screenshots if UI. 
+   - Request review from at least one teammate. 
+   - AŌer approval → Squash & merge. 
+6. AŌer merge, delete the branch (GitHub does it automaƟcally if you enable the seƫng). 
+ 
+OpƟonal: 
+Step 7: Extra Seƫngs for Smooth IntegraƟon 
+- Protect main branch: 
+  - Repo Seƫngs → Branches → Add rule for `main` 
+  - Require pull request before merging + Require 1 approval. 
+- Enable "Auto-delete head branches"aŌer merge. 
+- README.md – Add secƟons: 
+  - Project descripƟon 
+  - Tech stack 
+  - How to run (`npx expo start`) 
+  - Folder structure 
+  - Branching rules 
+  - Screenshots (add later) 
+ 
+This setup ensures: 
+- No one steps on another's code. 
+
+- Easy integraƟon of diﬀerent secƟons via PRs. 
+- Clean history for judges to review. 
+- Fast parallel development (Member B does ML while Member C does APIs). 

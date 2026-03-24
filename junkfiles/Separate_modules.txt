@@ -1,0 +1,798 @@
+Good. Now we move into the most criƟcal layer — this is where most teams fail. 
+You don’t need more ideas. 
+You need clarity of responsibility + execuƟon discipline. 
+Below is a deep, role-by-role breakdown with: 
+ 
+Exact responsibiliƟes 
+ 
+What to build 
+ 
+What to avoid 
+ 
+What to double-check 
+ 
+What “done” actually means 
+ 
+�
+� 1. 꾃 MEMBER A – PROJECT LEAD + INTEGRATION 
+蚘
+蚓
+蚔
+蚕
+蚖
+蚗 Core Responsibility 
+“Make sure everything works together” 
+ 
+궸
+궹
+궺
+궻 What You MUST Build 
+1. NavigaƟon System 
+ 
+BoƩom tab navigaƟon with:  
+o 
+Dashboard 
+o 
+Disease DetecƟon 
+o 
+Weather/IrrigaƟon 
+o 
+Market Prices 
+o 
+Schemes 
+踰
+踱
+踲
+踳 This is the spine of your app 
+ 
+2. Project Structure Enforcement 
+ 
+Maintain clean folders:  
+o 
+components/ 
+o 
+services/ 
+o 
+screens/ 
+踰
+踱
+踲
+踳 No random ﬁles anywhere 
+ 
+
+3. Dashboard Screen 
+ 
+Combine:  
+o 
+Weather summary 
+o 
+Quick disease scan buƩon 
+o 
+Market highlights 
+踰
+踱
+踲
+踳 This is the ﬁrst impression screen 
+ 
+4. IntegraƟon Layer 
+ 
+Connect:  
+o 
+UI (D) 
+o 
+APIs (C) 
+o 
+AI (B) 
+踰
+踱
+踲
+踳 Example: 
+ 
+Take data from API → pass to UI component 
+ 
+
+
+ Things You MUST Take Care Of 
+ 
+ Never let teammates overwrite each other’s code 
+ 
+ Never merge untested code 
+ 
+ Never allow direct push to main 
+ 
+膆
+ Always resolve merge conﬂicts immediately 
+ 
+膆
+ Always pull latest before merging 
+ 
+껳
+껱
+껲 Edge Cases You Must Handle 
+ 
+API returns null 
+ 
+AI model not loaded 
+ 
+Slow loading screens 
+踰
+踱
+踲
+踳 Add: 
+ 
+Loading spinners 
+ 
+Fallback text 
+ 
+
+膆
+ When Your Work is “DONE” 
+ 
+App opens without crash 
+ 
+NavigaƟon works perfectly 
+ 
+All modules connected 
+ 
+No console errors 
+ 
+ 
+뱅
+뱆
+뱇
+뱈
+뱉
+뱊
+뱋
+뱌 2. 밄 MEMBER B – AI/ML ENGINEER 
+蚘
+蚓
+蚔
+蚕
+蚖
+蚗 Core Responsibility 
+“Convert image → meaningful predicƟon” 
+ 
+궸
+궹
+궺
+궻 What You MUST Build 
+1. Image Capture System 
+ 
+Camera access OR gallery upload 
+ 
+2. Model IntegraƟon 
+ 
+Load .ƞlite model 
+ 
+Run inference 
+踰
+踱
+踲
+踳 If real model is hard: 
+ 
+Use mock predicƟon: 
+const result = "Leaf Blight"; 
+ 
+3. Output System 
+Display: 
+ 
+Disease name 
+ 
+Conﬁdence % 
+ 
+Suggested soluƟon 
+ 
+
+
+ Things You MUST Take Care Of 
+ 
+ Don’t block UI while processing 
+
+ 
+ Don’t crash if image fails 
+ 
+膆
+ Always handle: 
+o 
+No image selected 
+o 
+Invalid image 
+ 
+껳
+껱
+껲 Edge Cases 
+ 
+Blurry image 
+ 
+Unsupported crop 
+ 
+Model not loaded 
+踰
+踱
+踲
+踳 Add: 
+ 
+“Please retake image” message 
+ 
+�
+�
+� Smart Shortcut (Very Important) 
+踰
+踱
+踲
+踳 Judges don’t verify model accuracy 
+踰
+踱
+踲
+踳 They verify ﬂow 
+So: 
+ 
+Even mock AI = acceptable if UX is strong 
+ 
+膆
+ When Your Work is “DONE” 
+ 
+User clicks → uploads image 
+ 
+Gets result instantly 
+ 
+No crashes 
+ 
+ 
+艒 3. 밃 MEMBER C – BACKEND + API ENGINEER 
+蚘
+蚓
+蚔
+蚕
+蚖
+蚗 Core Responsibility 
+“Bring real-world data into the app” 
+ 
+궸
+궹
+궺
+궻 What You MUST Build 
+1. Weather API IntegraƟon 
+Fetch: 
+
+ 
+Temperature 
+ 
+Rain probability 
+Return clean data: 
+{ 
+  temp: 32, 
+  rain: 60 
+} 
+ 
+2. IrrigaƟon Logic 
+Convert weather → advice: 
+ 
+Rain > 50% → “Do not irrigate” 
+ 
+Else → “Irrigate crops” 
+ 
+3. Market Prices 
+OpƟon A: 
+ 
+Use API 
+OpƟon B (SMART): 
+ 
+Use mock JSON 
+{ 
+  rice: "₹2200/quintal" 
+} 
+ 
+4. Firebase Setup 
+ 
+AuthenƟcaƟon (opƟonal) 
+ 
+Firestore (store data if needed) 
+ 
+
+
+ Things You MUST Take Care Of 
+ 
+ Never expose API keys 
+ 
+ Never assume API always works 
+ 
+膆
+ Always add: 
+o 
+try-catch 
+
+o 
+fallback data 
+ 
+껳
+껱
+껲 Edge Cases 
+ 
+No internet 
+ 
+API limit exceeded 
+ 
+Invalid response 
+踰
+踱
+踲
+踳 Show: 
+“Unable to fetch data, showing last known info” 
+ 
+膆
+ When Your Work is “DONE” 
+ 
+Data loads correctly 
+ 
+No crashes if API fails 
+ 
+Clean structured response 
+ 
+ 
+虞
+號
+虠
+虡
+虢 4. 꾂 MEMBER D – UI/UX ENGINEER 
+蚘
+蚓
+蚔
+蚕
+蚖
+蚗 Core Responsibility 
+“Make it usable for a farmer” 
+ 
+궸
+궹
+궺
+궻 What You MUST Build 
+1. All Screens UI 
+ 
+Dashboard 
+ 
+Disease Screen 
+ 
+Weather Screen 
+ 
+Market Screen 
+ 
+Schemes Screen 
+ 
+2. Reusable Components 
+ 
+BuƩon 
+ 
+Card 
+ 
+Header 
+
+ 
+3. UX OpƟmizaƟon 
+ 
+Large buƩons 
+ 
+Minimal text 
+ 
+Clear icons 
+ 
+
+
+ Things You MUST Take Care Of 
+ 
+ Don’t use complex UI 
+ 
+ Don’t overload screen 
+ 
+膆
+ Focus on: 
+o 
+Clarity 
+o 
+Accessibility 
+ 
+껳
+껱
+껲 Edge Cases 
+ 
+Small screens 
+ 
+Long text overﬂow 
+ 
+Loading states 
+ 
+�
+�
+� Golden Rule 
+If a farmer cannot use it in 5 seconds → UI failed 
+ 
+膆
+ When Your Work is “DONE” 
+ 
+All screens look clean 
+ 
+Easy to navigate 
+ 
+No overlapping elements 
+ 
+ 
+꼏
+꼐 TEAM-LEVEL REQUIREMENTS (VERY IMPORTANT) 
+ 
+�
+� CommunicaƟon Rules 
+
+ 
+Update every 2–3 hours:  
+o 
+“What done” 
+o 
+“What blocked” 
+ 
+膆
+껄
+껅
+껆 Git Rules 
+ 
+One feature = one branch 
+ 
+Never work on same ﬁle 
+ 
+�
+�
+�
+�
+� TesƟng Rules 
+Before merging: 
+ 
+Test feature locally 
+ 
+Check for crashes 
+ 
+ 
+
+
+ FINAL FAILURE POINTS (READ THIS TWICE) 
+Most teams lose because: 
+ 
+Poor integraƟon  
+ 
+Unclear roles  
+ 
+Last-minute chaos  
+ 
+蛹
+蛻
+蛺 FINAL SUCCESS CONDITION 
+Each person ﬁnishes THEIR part 
+AND 
+Lead connects everything smoothly 
+ 
+굝
+굞
+굟
+굠
+굡
+굢 0. COMMON REQUIREMENTS (FOR EVERYONE) 
+踰
+踱
+踲
+踳 Every team member MUST install these ﬁrst 
+ 
+굧
+�
+�
+�
+�
+�
+�
+�
+�
+�
+� Core Tools 
+1. Node.js (LTS) 
+ 
+Why: Runs your React NaƟve app 
+
+ 
+Install from: nodejs.org 
+ 
+Verify: 
+node -v 
+npm -v 
+ 
+2.  
+ 
+Why: Main coding environment 
+ 
+Must install extensions:  
+o 
+ES7 React Snippets 
+o 
+Preƫer 
+o 
+GitLens 
+ 
+3.  
+ 
+Why: Team collaboraƟon 
+ 
+Verify: 
+git --version 
+ 
+4. (comes with Node) 
+ 
+Used to install dependencies 
+ 
+5.  
+Install: 
+npm install -g expo 
+ 
+6. (OpƟonal but powerful) 
+ 
+Needed for emulator 
+踰
+踱
+踲
+踳 OR use Expo Go app on phone (faster) 
+ 
+깳
+깶
+깷
+깴
+깵
+깸 Quick Run Check 
+npx create-expo-app test-app 
+cd test-app 
+
+npx expo start 
+踰
+踱
+踲
+踳 If this runs → setup is correct 
+ 
+꾃 MEMBER A – PROJECT LEAD (IntegraƟon Heavy Setup) 
+뮂
+뮀
+뮁
+뮃 Must Install 
+1. GitHub Desktop (OpƟonal but powerful) 
+ 
+Why: Easy branch + merge visualizaƟon 
+ 
+2.  
+ 
+Why: Test APIs before giving to UI 
+ 
+3. Chrome Browser 
+ 
+For debugging 
+ 
+
+
+ Must Conﬁgure 
+ 
+GitHub repo access 
+ 
+Branch protecƟon rules 
+ 
+Preƫer formaƫng 
+ 
+껳
+껱
+껲 Must Verify 
+ 
+Can clone repo 
+ 
+Can create branch 
+ 
+Can merge without conﬂicts 
+ 
+밄 MEMBER B – AI/ML ENGINEER 
+뮂
+뮀
+뮁
+뮃 Must Install 
+1. (3.10+) 
+ 
+Why: Model handling 
+ 
+2. / TensorFlow Lite 
+
+Install: 
+pip install tensorﬂow 
+ 
+3.  
+ 
+For tesƟng models 
+ 
+4. VS Code Extensions 
+ 
+Python 
+ 
+Pylance 
+ 
+
+
+ OpƟonal (Advanced) 
+ 
+Google Colab (no setup needed) 
+ 
+
+
+ Important Reality 
+踰
+踱
+踲
+踳 For hackathon: 
+ 
+You DON’T need full ML training 
+ 
+You only need:  
+o 
+Model ﬁle OR mock output 
+ 
+껳
+껱
+껲 Must Verify 
+ 
+Can load image 
+ 
+Can output predicƟon (even fake) 
+ 
+밃 MEMBER C – BACKEND/API ENGINEER 
+뮂
+뮀
+뮁
+뮃 Must Install 
+1. Postman (Already menƟoned) 
+ 
+Test APIs 
+ 
+2. (browser) 
+ 
+No install needed 
+ 
+
+3.  
+Install: 
+npm install axios 
+ 
+
+
+ Must Conﬁgure 
+ 
+Firebase project 
+ 
+API keys 
+ 
+
+
+ Security Rule 
+ 
+Never commit .env ﬁle 
+ 
+껳
+껱
+껲 Must Verify 
+ 
+API call works 
+ 
+Data comes correctly 
+ 
+Handles errors 
+ 
+꾂 MEMBER D – UI/UX ENGINEER 
+뮂
+뮀
+뮁
+뮃 Must Install 
+1.  
+ 
+Why: Design before coding 
+ 
+2. VS Code Extensions 
+ 
+Tailwind CSS IntelliSense (opƟonal) 
+ 
+React NaƟve Tools 
+ 
+3. Icon Libraries 
+Install: 
+npm install react-naƟve-vector-icons 
+ 
+
+
+ Must Conﬁgure 
+ 
+Color theme 
+
+ 
+Font consistency 
+ 
+껳
+껱
+껲 Must Verify 
+ 
+UI renders correctly 
+ 
+Works on mobile screen 
+ 
+ TEAM SYNCHRONIZATION REQUIREMENTS 
+ 
+꼏
+꼐 Everyone Must Have Same: 
+ 
+Node version 
+ 
+Project dependencies 
+ 
+Folder structure 
+ 
+긶
+긷
+길
+긹
+긺
+긻 Install Dependencies 
+npm install 
+ 
+膆
+껎
+껏 Daily Sync 
+git pull origin main 
+ 
+
+
+ CRITICAL FAILURE POINTS (SETUP RELATED) 
+ 
+ Diﬀerent Node Versions 
+踰
+踱
+踲
+踳 Causes app crashes 
+ 
+ Missing Dependencies 
+踰
+踱
+踲
+踳 App won’t run 
+ 
+ Emulator Not Working 
+踰
+踱
+踲
+踳 Use real phone (Expo Go) 
+ 
+
+蛹
+蛻
+蛺 FINAL SETUP CHECKLIST 
+Before coding starts, conﬁrm: 
+膆
+ App runs on all systems 
+膆
+ Git working for all 
+膆
+ Firebase connected 
+膆
+ API test successful 
+膆
+ UI visible 
+ 
+띙
+띚
+띞
+띟
+띛
+띜
+띝 Now Think Next 
+Do you want me to: 
+ 
+Give you a “Day 1 exact command-by-command execuƟon” (literally what each person 
+types and does) 
+ 
+OR a “full code starter template (ready to run project)” 
+That’s where your team stops preparing and starts building fast. 
+ 
