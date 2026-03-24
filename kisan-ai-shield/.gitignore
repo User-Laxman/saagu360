@@ -1,0 +1,23 @@
+# Expo / React Native
+node_modules/
+.expo/
+dist/
+web-build/
+*.tflite   # if model is large, but small one is ok
+
+# Environment
+.env
+.env.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
