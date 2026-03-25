@@ -1,9 +1,28 @@
+import axios from 'axios';
 
-export const getAIResponse = async (prompt) => {
+// IMPORTANT: Replace with your computer's local IPv4 address if you are testing on a 
+// physical phone over Wi-Fi (e.g. 'http://192.168.1.xxx:5000').
+// For Android Studio Emulator, '10.0.2.2' maps to your computer's localhost.
+const BASE_URL = 'http://192.168.10.48:5000';
+
+export const getAIResponse = async (prompt, language = 'en', lat = null, lon = null) => {
     try {
-        // TEMP MOCK (replace later with real API)
-        return "Based on your query, your crop may need irrigation.";
+        const response = await axios.post(`${BASE_URL}/chat`, {
+            text: prompt,
+            language: language,
+            lat: lat,
+            lon: lon
+        });
+        
+        if (response.data.success) {
+            // response.data structured per ai_pipeline.py output
+            return response.data.response;
+        } else {
+            console.error("AI Server Error:", response.data.error);
+            return "AI failed to process the request.";
+        }
     } catch (error) {
-        return "AI is currently unavailable.";
+        console.error("Axios Network Error:", error.message);
+        return "AI is unreachable. Ensure Flask is running & URL is correct.";
     }
 };

@@ -1,9 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function TabLayout() {
@@ -12,22 +9,42 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
+        tabBarActiveTintColor: '#2e7d32', // Unified Team Lead Green
+        headerShown: true,
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: 'Ask AI',
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons size={28} name="robot" color={color} />,
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="disease-scan"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'Scan Crop',
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons size={28} name="leaf" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="weather-irrigation"
+        options={{
+          title: 'Weather',
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons size={28} name="weather-cloudy" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="market-prices"
+        options={{
+          title: 'Mandi',
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons size={28} name="storefront" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="schemes"
+        options={{
+          title: 'Schemes',
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons size={28} name="file-document-outline" color={color} />,
         }}
       />
     </Tabs>

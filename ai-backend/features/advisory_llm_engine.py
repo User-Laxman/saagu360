@@ -1,11 +1,10 @@
-import google.generativeai as genai
 import os
 import requests
 
 class AdvisoryLLM:
     '''
     Production-ready Reasoning Engine.
-    Uses Google Gemini via the `google-generativeai` SDK.
+    Now directly hooks into OpenRouter's GPT/Cloud models (e.g. stepfun).
     Injects real-time tools natively into the prompt context for hyper-accurate answers.
     '''
     
@@ -15,19 +14,15 @@ class AdvisoryLLM:
     )
 
     def __init__(self, api_key=None):
-        self.api_key = api_key or os.environ.get("GEMINI_API_KEY")
+        self.api_key = api_key or os.environ.get("OPENROUTER_API_KEY") or os.environ.get("AI_API_KEY")
         self.is_configured = False
         
         if self.api_key:
-            genai.configure(api_key=self.api_key)
-            self.model = genai.GenerativeModel(
-                model_name='gemini-1.5-flash',
-                system_instruction=self.SYSTEM_INSTRUCTION
-            )
+            self.model_name = "stepfun/step-3.5-flash:free"
             self.is_configured = True
-            print("[LLMEngine] Successfully initialized Gemini model context.")
+            print(f"[LLMEngine] Successfully initialized OpenRouter context ({self.model_name}).")
         else:
-            print("[LLMEngine] WARNING: No GEMINI_API_KEY found. Engine disabled.")
+            print("[LLMEngine] WARNING: No OPENROUTER_API_KEY or AI_API_KEY found. Engine disabled.")
 
     def fetch_weather_context(self, lat, lon):
         '''Internal tool call: Fetch live weather'''
@@ -62,10 +57,30 @@ class AdvisoryLLM:
         prompt = f"{context_string}Farmer asks: {english_query}\nReply clearly as an expert."
 
         try:
-            # Generate response with robust error handling
-            chat_session = self.model.start_chat(history=[])
-            response = chat_session.send_message(prompt)
-            return response.text.replace('*', '').strip()  # Clean up markdown for TTS
+            # Generate response via OpenRouter HTTP endpoint
+            payload = {
+                "model": self.model_name,
+                "messages": [
+                    {"role": "system", "content": self.SYSTEM_INSTRUCTION},
+                    {"role": "user", "content": prompt}
+                ]
+            }
+            
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+
+            res = requests.post("https://openrouter.ai/api/v1/chat/completions", json=payload, headers=headers)
+            
+            if res.status_code != 200:
+                raise Exception(f"API Error {res.status_code}: {res.text}")
+
+            data = res.json()
+            response_text = data['choices'][0]['message']['content']
+            
+            return response_text.replace('*', '').strip()  # Clean up markdown for TTS
+            
         except Exception as e:
             print(f"[LLMEngine] Inference failed: {e}")
             return "I am currently unable to process your request due to a server disruption. Please try again shortly."
