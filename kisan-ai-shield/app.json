@@ -38,6 +38,12 @@
             "backgroundColor": "#000000"
           }
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Kisan AI Shield to use your location to fetch highly accurate local weather conditions."
+        }
       ]
     ],
     "experiments": {

@@ -1,11 +1,18 @@
 /**
- * Fetches weather data from OpenWeatherMap free API.
- * @param {string} city - The city name (default: "Hyderabad").
+ * Fetches weather data from OpenWeatherMap free API using precise GPS coordinates.
+ * @param {number|null} lat - Latitude
+ * @param {number|null} lon - Longitude
+ * @param {string} fallbackCity - The city name if we need to display it.
  * @returns {Promise<object>} Clean weather object or hardcoded fallback.
  */
-export const fetchWeatherData = async (city = "Hyderabad") => {
+export const fetchWeatherData = async (lat, lon, fallbackCity = "Hyderabad") => {
   const KEY = process.env.EXPO_PUBLIC_WEATHER_KEY;
-  const URL = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${KEY}&units=metric`;
+  
+  // Use precise GPS if available, otherwise fallback to the default city query
+  let URL = `https://api.openweathermap.org/data/2.5/weather?q=Hyderabad&appid=${KEY}&units=metric`;
+  if (lat && lon) {
+     URL = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${KEY}&units=metric`;
+  }
 
   try {
     const response = await fetch(URL);
@@ -30,7 +37,7 @@ export const fetchWeatherData = async (city = "Hyderabad") => {
       humidity: data.main.humidity,
       windSpeed: data.wind.speed,
       description: data.weather[0].description,
-      city: data.name,
+      city: fallbackCity || data.name,
       fetchedAt: new Date().toISOString(),
       source: "live"
     };
