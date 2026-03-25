@@ -35,21 +35,21 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="disease-scan"
+        name="disease"
         options={{
           title: 'Scan Crop',
           tabBarIcon: ({ focused }) => <TabIcon emoji="🔬" label="Scan" focused={focused} />,
         }}
       />
       <Tabs.Screen
-        name="weather-irrigation"
+        name="weather"
         options={{
           title: 'Weather',
           tabBarIcon: ({ focused }) => <TabIcon emoji="🌦" label="Weather" focused={focused} />,
         }}
       />
       <Tabs.Screen
-        name="market-prices"
+        name="market"
         options={{
           title: 'Mandi',
           tabBarIcon: ({ focused }) => <TabIcon emoji="📊" label="Market" focused={focused} />,
