@@ -6,8 +6,6 @@ web-build/
 *.tflite   # if model is large, but small one is ok
 
 # Environment
-.env
-.env.local
 
 # Logs
 npm-debug.log*
