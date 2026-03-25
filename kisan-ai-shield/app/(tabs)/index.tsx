@@ -21,10 +21,10 @@ export default function DashboardScreen() {
         let { status } = await Location.requestForegroundPermissionsAsync();
         if (status === 'granted') {
           try {
-            // Use getLastKnownPositionAsync because Android Emulators often hang forever 
+            // Use getLastKnownPositionAsync because Android Emulators often hang forever
             // trying to get a fresh satellite lock indoors.
             let location = await Location.getLastKnownPositionAsync({});
-            
+
             // If the phone has no memory of a prior location, force a low-accuracy fetch
             if (!location) {
                location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Lowest });
@@ -33,7 +33,7 @@ export default function DashboardScreen() {
             if (location) {
               fetchLat = location.coords.latitude;
               fetchLon = location.coords.longitude;
-              
+
               let geocodeCode = await Location.reverseGeocodeAsync({
               latitude: location.coords.latitude,
               longitude: location.coords.longitude
@@ -77,18 +77,18 @@ export default function DashboardScreen() {
       <Text style={styles.title}>Welcome back, Kisan!</Text>
       <Text style={styles.subtitle}>Your Daily Farm Shield Dashboard</Text>
 
-      {/* Member C's Weather Integration Test */}
+      {/* Weather Card */}
       <View style={styles.card}>
         <Text style={styles.cardHeader}>🌦️ Live Weather & Irrigation</Text>
         <Text style={styles.text}>📍 Farm Location: {weatherData?.city}</Text>
         <Text style={styles.text}>Condition: {weatherData?.description} ({weatherData?.temp}°C)</Text>
         <Text style={[styles.text, {fontWeight: 'bold', color: weatherData?.rain > 50 ? '#D32F2F' : '#1976D2'}]}>
-          Rain Probability: {weatherData?.rain}% 
+          Rain Probability: {weatherData?.rain}%
           {weatherData?.rain > 50 ? ' (Do NOT Irrigate Today)' : ' (Safe to Irrigate)'}
         </Text>
       </View>
 
-      {/* Member C's Market Integration Test */}
+      {/* Market Card */}
       <View style={styles.card}>
         <Text style={styles.cardHeader}>📈 Mandi Highlights ({marketData?.market})</Text>
         {marketData?.crops.slice(0, 3).map((crop: any, index: number) => (
@@ -137,8 +137,8 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     marginBottom: 16,
-    elevation: 2, // Android shadow
-    shadowColor: '#000', // iOS shadow
+    elevation: 2,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
