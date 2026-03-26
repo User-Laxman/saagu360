@@ -35,21 +35,21 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="disease"
+        name="disease-scan"
         options={{
           title: 'Scan Crop',
           tabBarIcon: ({ focused }) => <TabIcon emoji="🔬" label="Scan" focused={focused} />,
         }}
       />
       <Tabs.Screen
-        name="weather"
+        name="weather-irrigation"
         options={{
           title: 'Weather',
           tabBarIcon: ({ focused }) => <TabIcon emoji="🌦" label="Weather" focused={focused} />,
         }}
       />
       <Tabs.Screen
-        name="market"
+        name="market-prices"
         options={{
           title: 'Mandi',
           tabBarIcon: ({ focused }) => <TabIcon emoji="📊" label="Market" focused={focused} />,
@@ -61,6 +61,10 @@ export default function TabLayout() {
           title: 'Schemes',
           tabBarIcon: ({ focused }) => <TabIcon emoji="🏛" label="Schemes" focused={focused} />,
         }}
+      />
+      <Tabs.Screen
+        name="explore"
+        options={{ href: null }}
       />
     </Tabs>
   );
