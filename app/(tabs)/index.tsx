@@ -1,5 +1,5 @@
-import AIScreen from "../../screens/AIScreen";
+import HomeScreen from "../../screens/HomeScreen";
 
-export default function HomeScreen() {
-  return <AIScreen />;
+export default function HomeTab() {
+  return <HomeScreen />;
 }

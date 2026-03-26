@@ -3,7 +3,7 @@ import axios from 'axios';
 // IMPORTANT: Replace with your computer's local IPv4 address if you are testing on a 
 // physical phone over Wi-Fi (e.g. 'http://192.168.1.xxx:5000').
 // For Android Studio Emulator, '10.0.2.2' maps to your computer's localhost.
-const BASE_URL = 'http://192.168.10.48:5000';
+const BASE_URL = 'http://10.57.94.44:5000';
 
 export const getAIResponse = async (prompt, language = 'en', lat = null, lon = null) => {
     try {
@@ -12,6 +12,8 @@ export const getAIResponse = async (prompt, language = 'en', lat = null, lon = n
             language: language,
             lat: lat,
             lon: lon
+        }, {
+            timeout: 45000, // 45s timeout for AI reasoning
         });
         
         if (response.data.success) {

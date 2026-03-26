@@ -1,8 +1,8 @@
 import axios from 'axios';
 
-const BASE_URL = 'http://192.168.10.48:5000';
+const BASE_URL = 'http://10.57.94.44:5000';
 
-export const predictDisease = async (imageUri) => {
+export const predictDisease = async (imageUri, language = 'en') => {
     try {
         // We must use FormData to upload binary images in React Native
         const formData = new FormData();
@@ -12,6 +12,9 @@ export const predictDisease = async (imageUri) => {
             name: 'crop_scan.jpg',
             type: 'image/jpeg'
         });
+        
+        // Pass language to Python backend
+        formData.append('language', language);
 
         // The headers are CRITICAL here so Flask knows how to parse request.files
         const response = await axios.post(`${BASE_URL}/predict`, formData, {

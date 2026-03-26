@@ -2,6 +2,7 @@ import os
 from features.disease_vision_engine import DiseaseVisionModel
 from features.advisory_llm_engine import AdvisoryLLM
 from features.speech_language_engine import SpeechLanguageEngine
+from features.speech_to_text import transcribe_audio_file
 
 class KisanAIPipeline:
     '''
@@ -67,6 +68,35 @@ class KisanAIPipeline:
             
         except Exception as e:
             return {"success": False, "error": str(e)}
+
+    # ==========================================
+    # ENDPOINT 3: /voice-chat (Audio + Context)
+    # ==========================================
+    def process_voice_chat(self, audio_file_path, language='en-IN', lat=None, lon=None):
+        '''
+        Facade method for Audio. Transcribes the recorded voice clip locally, 
+        and safely passes the exact text to the main LLM advisory stream.
+        '''
+        print(f"[AIPipeline] Processing incoming audio file...")
+        
+        # Step 1: Transcribe the local voice clip to text
+        transcription_result = transcribe_audio_file(audio_file_path, language=language)
+        
+        if "error" in transcription_result:
+            return {"success": False, "error": transcription_result["error"]}
+            
+        transcribed_text = transcription_result["text"]
+        print(f"[AIPipeline] Transcribed Text: '{transcribed_text}'")
+        
+        # Step 2: Route seamlessly into the standard Advisory Chat
+        # Note: We pass the exact text downstream! No new business logic needed.
+        chat_result = self.process_advisory_chat(transcribed_text, language=language, lat=lat, lon=lon)
+        
+        # We append the transcribed text to the response so the frontend UI can show what the bot heard
+        if chat_result.get("success"):
+            chat_result["transcribed_query"] = transcribed_text
+            
+        return chat_result
 
 # Export a singleton instance for global use
 pipeline = KisanAIPipeline()
