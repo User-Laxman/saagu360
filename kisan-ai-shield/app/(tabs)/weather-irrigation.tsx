@@ -1,29 +1,10 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
+import WeatherScreen from '../../screens/WeatherScreen';
 
-export default function WeatherIrrigationScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Weather & Irrigation</Text>
-      <Text style={styles.subtitle}>Smart watering advice</Text>
-    </View>
-  );
+export default function TabWeatherIrrigation() {
+  const router = useRouter();
+  const navigationShim = {
+    navigate: (route: string) => router.push(`/${route.toLowerCase()}` as any),
+  };
+  return <WeatherScreen navigation={navigationShim as any} />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5FCFF',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#0277BD',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 8,
-  },
-});
