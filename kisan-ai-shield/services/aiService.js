@@ -61,3 +61,19 @@ export const sendVoiceQuery = async (audioUri, language = 'en', lat = null, lon 
         return { error: "Voice API unreachable. Ensure Flask is running." };
     }
 };
+
+export const translateChat = async (texts, targetLang) => {
+    try {
+        const response = await axios.post(`${BASE_URL}/translate`, { 
+            texts, 
+            target: targetLang 
+        });
+        if (response.data.success) {
+            return response.data.translations;
+        }
+        return texts;
+    } catch (e) {
+        console.warn("Translation API failed:", e.message);
+        return texts;
+    }
+};

@@ -51,14 +51,19 @@ class KisanAIPipeline:
         reverse translation, and formatting.
         '''
         try:
+            print("[AIPipeline] Received chat request.")
             # Step 1: Normalize input to English
+            print(f"[AIPipeline] Translating query from {language} to EN...")
             english_query = self.language_engine.translate_to_english(raw_user_text, source_lang=language)
+            print("[AIPipeline] Query translated. Fetching LLM reasoning...")
             
             # Step 2: Get AI Reasoning (Injecting geolocation if available)
             english_response = self.llm_engine.generate_advice(english_query, lat=lat, lon=lon)
+            print("[AIPipeline] LLM responded. Re-translating...")
             
             # Step 3: Localize response back to the user
             localized_response = self.language_engine.translate_to_regional(english_response, target_lang=language)
+            print("[AIPipeline] Translation complete. Returning payload.")
             
             return {
                 "success": True,
@@ -97,6 +102,22 @@ class KisanAIPipeline:
             chat_result["transcribed_query"] = transcribed_text
             
         return chat_result
+
+    # ==========================================
+    # ENDPOINT 4: /translate (Seamless Chat Toggling)
+    # ==========================================
+    def translate_history(self, texts, target_lang='en'):
+        '''
+        Loops through an array of current chat messages and translates
+        them into the new target UI language seamlessly.
+        '''
+        try:
+            return {
+                "success": True,
+                "translations": [self.language_engine.translate_direct(t, target_lang) for t in texts]
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
 # Export a singleton instance for global use
 pipeline = KisanAIPipeline()

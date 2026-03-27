@@ -1,0 +1,95 @@
+{
+  "project": {
+    "name": "Kisan AI Shield",
+    "version": "3.0.0",
+    "description": "An offline-first, multilingual, AI-powered digital assistant for Indian farmers, providing crop disease detection, localized agricultural advice, hyper-local weather alerts, and dynamic mandi pricing.",
+    "target_audience": "Indian farmers, agricultural extension workers, rural agronomists",
+    "core_languages": ["en", "hi", "te"]
+  },
+  "architecture": {
+    "pattern": "Client-Server Microservices",
+    "frontend": {
+      "framework": "React Native (Expo)",
+      "routing": "expo-router",
+      "design_system": "Custom Theming Engine (appTheme.js)",
+      "typography": ["Inter", "Poppins"],
+      "persistence_layer": "AsyncStorage (Device-local)",
+      "hardware_integration": [
+        "Expo Camera",
+        "Expo Audio",
+        "Expo Image Picker"
+      ]
+    },
+    "backend": {
+      "framework": "Python Flask",
+      "server": "Werkzeug (Development) / Waitress (Production)",
+      "orchestrator_pattern": "Facade Pattern (KisanAIPipeline)",
+      "routing_strategy": "REST API with strict JSON responses"
+    }
+  },
+  "ai_and_ml_subsystems": {
+    "computer_vision_engine": {
+      "purpose": "Crop Disease Diagnosis",
+      "framework": "TensorFlow / Keras",
+      "models": [
+        {
+          "name": "EfficientNet-B0",
+          "role": "Current training architecture",
+          "theoretical_advantage": "Balances depth, width, and resolution scaling efficiently, providing high accuracy with a small parameter footprint suitable for edge/mobile contexts."
+        },
+        {
+          "name": "MobileNetV2",
+          "role": "Legacy/Inference Fallback",
+          "theoretical_advantage": "Uses depthwise separable convolutions to drastically reduce computation cost on mobile devices."
+        }
+      ],
+      "data_preprocessing": "Image resizing (224x224), Float32 normalization, NumPy Array expanded dimensions"
+    },
+    "conversational_ai": {
+      "purpose": "Multilingual Agricultural Question Answering",
+      "llm_provider": "OpenRouter API",
+      "model_identifier": "stepfun/step-3.5-flash:free",
+      "theoretical_basis": "Instruction-tuned Large Language Model acting as an Expert Agronomist, governed by a strict System Prompt setting boundaries (only agricultural advice, safe pesticide usage, precise measurements).",
+      "translation_pipeline": {
+        "engine": "deep-translator (Google Translator API fallback)",
+        "workflow": "1. Detect source language -> 2. Translate non-English to English -> 3. Execute LLM Query in English (for highest reasoning quality) -> 4. Translate English response back to source language."
+      }
+    }
+  },
+  "data_flows": {
+    "voice_query_flow": [
+      "User speaks in Local Language via React Native Audio Recorder",
+      "Audio file sent as multi-part form data to Flask Backend (/api/ai/voice)",
+      "Flask transcribes audio using local STT (or external Speech-to-Text wrapper)",
+      "Transcribed text passes through Translation Pipeline (Local -> EN)",
+      "English abstract syntax sent to LLM for Agronomy Reasoning",
+      "LLM English response passes through Translation Pipeline (EN -> Local)",
+      "Text response sent back to UI, rendered, and processed via device native TTS engine"
+    ],
+    "disease_scan_flow": [
+      "User captures leaf image using React Native Camera",
+      "Base64/Multi-part image sent to Flask Backend (/api/scan)",
+      "Flask decodes image into PIL Image",
+      "Image reshaped to (224, 224, 3) and passed to TensorFlow Graph",
+      "Logits passed through Softmax layer for confidence distribution",
+      "Top-1 class prediction mapped to Disease/Remedy dictionary",
+      "Structured JSON (confidence, diagnosis, remedies) returned to UI"
+    ]
+  },
+  "external_integrations": [
+    {
+      "service": "OpenWeatherMap API",
+      "purpose": "Hyper-local microclimate detection and 3-day forecasting",
+      "application_logic": "Used to generate dynamic alerts like 'Delay Spraying' (if Rain) or 'Early Morning Irrigation' (if Heatwave)."
+    },
+    {
+      "service": "National Mandi Indices / Web Scrapers",
+      "purpose": "Live agricultural commodity pricing"
+    }
+  ],
+  "system_resiliency": {
+    "network_timeouts": "Strict 10-second timeouts on all upstream API calls to prevent thread hanging.",
+    "fallback_UIs": "Graceful 'Loading' and 'Error' states across all React Native screens if backend is unreachable.",
+    "offline_availability": "Cached Crop Data, Schemes, and Activity History via AsyncStorage."
+  }
+}

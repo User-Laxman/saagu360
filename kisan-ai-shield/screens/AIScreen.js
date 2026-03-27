@@ -13,11 +13,12 @@ import {
 } from "react-native";
 import { COLORS, FONTS, RADIUS, SHADOW, SPACING } from "../constants/appTheme";
 import { shared } from "../constants/sharedStyles";
-import { getAIResponse, sendVoiceQuery } from "../services/aiService";
+import { getAIResponse, sendVoiceQuery, translateChat } from "../services/aiService";
 import { speakText } from "../utils/speech";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Audio } from 'expo-av';
 import { LanguageContext } from "../context/LanguageContext";
+import LanguageSelector from "../components/LanguageSelector";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Animated typing dots component
@@ -79,6 +80,42 @@ export default function AIScreen() {
             }
         });
     }, []);
+
+    const prevLang = useRef(language);
+
+    // Seamlessly translate chat history when UI language changes
+    useEffect(() => {
+        const translateActiveChat = async () => {
+            if (prevLang.current === language) return;
+            prevLang.current = language;
+
+            // Extract current state without adding it to dependency array
+            let currentMsgs = [];
+            setMessages(prev => { currentMsgs = prev; return prev; });
+
+            if (currentMsgs.length === 0) return;
+
+            // If it's just the fresh welcome message, we don't need 
+            // the backend API, we just refresh the local key!
+            if (currentMsgs.length === 1 && currentMsgs[0].id === 'welcome') {
+                const refreshed = [{ ...currentMsgs[0], text: t("aiWelcomeMessage") }];
+                saveMessages(refreshed);
+                return;
+            }
+
+            // Real conversational history requires deep-translator
+            setIsLoading(true);
+            const texts = currentMsgs.map(m => m.text);
+            const translated = await translateChat(texts, language);
+            
+            if (translated && translated.length === currentMsgs.length) {
+                const newMsgs = currentMsgs.map((m, idx) => ({ ...m, text: translated[idx] }));
+                saveMessages(newMsgs);
+            }
+            setIsLoading(false);
+        };
+        translateActiveChat();
+    }, [language, t, saveMessages]);
 
     // Save chat on every new message
     const saveMessages = useCallback((msgs) => {
@@ -289,6 +326,8 @@ export default function AIScreen() {
                 </TouchableOpacity>
             </View>
         </KeyboardAvoidingView>
+
+        <LanguageSelector />
         </SafeAreaView>
     );
 }

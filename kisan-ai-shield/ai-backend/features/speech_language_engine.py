@@ -48,3 +48,17 @@ class SpeechLanguageEngine:
         except Exception as e:
             print(f"[TranslationEngine] Fail EN->target: {e}")
             return english_text
+
+    def translate_direct(self, text, target_lang='en'):
+        '''
+        Translates text from any auto-detected language directly to the target language.
+        Used for seamlessly translating chat history when the user toggles the UI language.
+        '''
+        if not text or not self.is_configured:
+            return text
+        try:
+            return GoogleTranslator(source='auto', target=target_lang).translate(text)
+        except Exception as e:
+            print(f"[TranslationEngine] Fail auto->target: {e}")
+            return text
+

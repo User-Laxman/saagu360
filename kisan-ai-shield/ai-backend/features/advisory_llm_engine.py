@@ -83,4 +83,4 @@ class AdvisoryLLM:
             
         except Exception as e:
             print(f"[LLMEngine] Inference failed: {e}")
-            return "I am currently unable to process your request due to a server disruption. Please try again shortly."
+            return f"LLM Inference failed: {str(e)}"

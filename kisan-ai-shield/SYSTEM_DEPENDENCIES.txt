@@ -1,0 +1,59 @@
+KISAN AI SHIELD - FULL SYSTEM DEPENDENCIES
+==========================================
+To run this project on a brand new system, you need to install dependencies for both the Frontend (React Native / Expo) and the Backend (Python Flask).
+
+------------------------------------------
+SYSTEM PREREQUISITES
+------------------------------------------
+1. Node.js (v18 or higher recommended) - For running the Expo frontend
+2. Python (v3.10 or higher recommended) - For running the AI backend
+3. Git (Optional, but recommended for version control)
+
+------------------------------------------
+PART 1: AI BACKEND DEPENDENCIES (PYTHON)
+------------------------------------------
+Location: `/ai-backend/`
+Installation Command: `pip install -r requirements.txt`
+
+The Python backend requires the following core packages:
+- Flask (v3.0.x) : The web server framework
+- Werkzeug & Waitress : Production and Development WSGI servers
+- python-dotenv : Loads the API keys securely from the `.env` file
+- flask-cors : Allows the React Native app to make requests to the local Flask server
+- requests : Used by the AI Engine to communicate with OpenRouter (step-3.5-flash:free model)
+- deep-translator : Seamless translation engine bridging English LLM responses to Hindi and Telugu
+- tensorflow / keras : Legacy CV models (If MobileNetV2 fallback is used)
+- torch / torchvision / transformers : The Vision Engine (EfficientNet-B0 PyTorch implementation)
+- Pillow (PIL) : Image processing for the CV scan engine
+- SpeechRecognition / pydub / soundfile : Used for local Speech-to-Text inference
+
+------------------------------------------
+PART 2: FRONTEND DEPENDENCIES (REACT NATIVE)
+------------------------------------------
+Location: `/` (Project Root)
+Installation Command: `npm install`
+
+The React Native application uses Expo Router and requires the following NPM packages:
+- expo (~54.0.33) : The core Expo SDK layer
+- react (19.1.0) & react-native (0.81.5) : The core UI libraries
+- expo-router (~6.0.23) : File-based routing navigation
+- @react-navigation/bottom-tabs & native : Navigation primitives
+- @react-native-async-storage/async-storage : Persistent local storage (My Crops, Chat History, Scans)
+- axios : Making API requests to the Python Backend
+- @expo-google-fonts/inter & poppins : Premium Typography system
+- @expo/vector-icons : Global UI icon system
+- expo-camera & expo-image-picker : Computer Vision leaf scanning hardware integration
+- expo-location : Geolocation for hyper-local weather alerts
+- expo-av : Audio recording (Voice Queries)
+- expo-speech : Local device Text-to-Speech (TTS) engine for AI responses
+
+------------------------------------------
+HOW TO LAUNCH ON A NEW SYSTEM
+------------------------------------------
+1. Copy the `.env` file to the root directory with your `OPENROUTER_API_KEY`.
+2. Open a terminal in the root folder.
+3. Run `npm install` (Installs Frontend)
+4. Create a python virtual environment: `python -m venv ai_env`
+5. Activate it: `ai_env\Scripts\activate` (Windows) or `source ai_env/bin/activate` (Mac/Linux)
+6. Install backend packages: `pip install -r ai-backend/requirements.txt`
+7. Run the startup script: `start.bat` (This boots both servers simultaneously!)

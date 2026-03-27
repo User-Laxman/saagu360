@@ -210,6 +210,22 @@ def mandi_prices():
     # Always return data, even on failure
     return jsonify({"success": True, "data": fallback})
 
+@app.route('/translate', methods=['POST'])
+def translate_chat():
+    """
+    Called when the user toggles the language switch UI. Translates the entire 
+    frontend chat history into the newly selected language continuously using deep-translator.
+    """
+    data = request.json
+    if not data or 'texts' not in data:
+        return jsonify({"success": False, "error": "Missing 'texts' array"}), 400
+        
+    texts = data.get('texts', [])
+    target_lang = data.get('target', 'en')
+    
+    result = pipeline.translate_history(texts, target_lang)
+    return jsonify(result)
+
 if __name__ == '__main__':
     # host='0.0.0.0' allows external devices (like your phone or emulator) to connect
     print("🚀 Kisan AI Shield Server starting...")
