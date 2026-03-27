@@ -1,18 +1,17 @@
 import axios from 'axios';
-
-const BASE_URL = 'http://10.57.94.44:5000';
+import { BASE_URL } from './apiConfig';
 
 export const predictDisease = async (imageUri, language = 'en') => {
     try {
         // We must use FormData to upload binary images in React Native
         const formData = new FormData();
-        
+
         formData.append('image', {
             uri: imageUri,
             name: 'crop_scan.jpg',
             type: 'image/jpeg'
         });
-        
+
         // Pass language to Python backend
         formData.append('language', language);
 

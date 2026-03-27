@@ -1,8 +1,6 @@
 import axios from 'axios';
 import * as Location from 'expo-location';
-
-const BASE_URL = 'http://10.57.94.44:5000'; // local IP for Expo testing
-
+import { BASE_URL } from './apiConfig';
 export const fetchWeather = async () => {
     try {
         let lat = 17.2473;

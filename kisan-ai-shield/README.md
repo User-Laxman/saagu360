@@ -1,292 +1,163 @@
-<p align="center">
-  <img src="https://img.shields.io/badge/🌾_Kisan_AI_Shield-v2.0-2e7d32?style=for-the-badge&labelColor=1b5e20" />
-  <img src="https://img.shields.io/badge/Platform-Android_%7C_iOS-blue?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/AI_Backend-Flask_%7C_PyTorch_%7C_OpenRouter-orange?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/Language-Python_%7C_JavaScript-yellow?style=for-the-badge" />
-</p>
-
-# 🌾 Kisan AI Shield — Intelligent Crop Protection System
-
-> **An AI-powered mobile application for Indian farmers** that provides real-time crop disease detection, multilingual AI advisory, live weather intelligence, dynamic market pricing, and government scheme discovery — all powered by a custom-built Machine Learning pipeline.
+<div align="center">
+  <img src="https://img.shields.io/badge/🌾_Kisan_AI_Shield-v2.0-2e7d32?style=for-the-badge&labelColor=1b5e20" alt="Kisan AI Shield Banner" />
+  <br/>
+  <h2>Intelligent Crop Protection & Farm Management System</h2>
+  <b style="color: #666;">A comprehensive, enterprise-grade AI solution engineered to empower the modern agricultural ecosystem through real-time predictive modeling, location-aware intelligence, and multilingual cognitive services.</b>
+  <br/><br/>
+  
+  <img src="https://img.shields.io/badge/Platform-Cross--Platform_(React_Native_%7C_Expo)-blue?style=flat-square" />
+  <img src="https://img.shields.io/badge/Backend-Flask_(Python_3.11%2B)-4B8BBE?style=flat-square&logo=python" />
+  <img src="https://img.shields.io/badge/ML_Engine-PyTorch-EE4C2C?style=flat-square&logo=pytorch" />
+  <img src="https://img.shields.io/badge/Cognitive-OpenRouter_LLM_%7C_HuggingFace-black?style=flat-square&logo=openai" />
+</div>
 
 ---
 
-## 🏗️ System Architecture
+## 📖 Executive Summary
 
+The **Kisan AI Shield** is a production-ready mobile application that merges cutting-edge **Computer Vision**, **Large Language Models (LLMs)**, and **Geospatial APIs** into a seamless, offline-tolerant interface. Designed specifically for the unstructured challenges of agriculture, the system provides high-reliability crop disease classification, context-aware RAG (Retrieval-Augmented Generation) advisory, dynamic market forecasting, and hyper-local meteorological tracking. 
+
+The platform features a highly optimized modular architecture, enabling rapid iteration of machine learning models on the backend without requiring frontend deployments, while utilizing `@tanstack/react-query` to achieve zero-latency state caching on the client.
+
+---
+
+## 🚀 Core Platform Capabilities
+
+### 1. Advanced Computer Vision Diagnostics (`DiseaseScreen`)
+A robust image-processing pipeline that ingests raw camera streams and translates them into actionable agronomic insights.
+- **Model Architecture:** Custom PyTorch CNN (Convolutional Neural Network) utilizing Transfer Learning for high-accuracy feature extraction.
+- **Inference Pipeline:** Automatically standardizes input dimensions directly in the backend, removing heavy preprocessing duties from the mobile client.
+- **Output Metrics:** Returns deterministic classifications paired with floating-point confidence thresholds for clinical evaluation.
+
+### 2. Conversational RAG Advisory System (`AIScreen`)
+An interactive LLM-driven engine utilizing `stepfun/step-3.5-flash:free` via the OpenRouter API.
+- **Multimodal Audio Engine:** Seamlessly ingests native `.m4a` mobile audio, transpiles it server-side using `pydub`/FFmpeg, and executes highly accurate speech-to-text recognition.
+- **Text-to-Speech (TTS):** Automatically synthesizes the AI's response text into natural language audio playback on the mobile device.
+- **Dynamic Context Injection:** Transparently intercepts user prompts to inject background meteorological data and geographical coordinates, grounding the LLM's agronomical advice in reality.
+
+### 3. Cross-Boundary Localization 
+A dynamic i18n localization engine operating synergistically across both the client and the backend.
+- **Languages Supported:** English (🇬🇧), Hindi (🇮🇳), Telugu (🇮🇳).
+- **Backend Translation Matrix:** Uses sophisticated prompt engineering to force the LLM to process complex English context but return fully localized dialect responses.
+
+### 4. Deterministic State Caching (`WeatherScreen`, `SchemesScreen`, `MarketScreen`)
+- **React Query:** Engineered with robust `@tanstack` hydration techniques to eliminate network delays between tabs. Background polling ensures crop market prices and 5-day weather vectors are always fresh without locking the main UI thread.
+- **Two-Phase Rendering:** Leverages instantaneous hardcoded fallback models while negotiating asynchronous analytical requests in the background.
+
+---
+
+## 🏗️ System Architecture & Technology Stack
+
+```mermaid
+graph TD;
+    subgraph Mobile Client [React Native Expo Client]
+        A[(React Query Cache)]
+        B[Camera & Audio APIs]
+        C[Geolocation & TTS Services]
+    end
+
+    subgraph Service Mesh [Dynamic IP Resolver]
+        D((Axios Service Layer))
+    end
+
+    subgraph Python Backend [Flask HTTP Server]
+        E[AI Orchestrator Pipeline]
+        F[PyTorch Inference Node]
+        G[Language & Translation Engine]
+        H[RAG Context Builder]
+    end
+
+    subgraph External Dependencies
+        I[(OpenRouter LLM API)]
+        J[OpenWeatherMap API]
+        K[FFmpeg Audio Decoder]
+    end
+
+    B & C --> D
+    D --> E
+    A <--> D
+    E --> F
+    E --> G
+    E --> H
+    
+    H --> I
+    H --> J
+    G --> K
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    📱 MOBILE CLIENT (Expo / React Native)       │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────────┐ ┌────────┐ │
-│  │  Home    │ │  Ask AI  │ │ Disease  │ │Weather │ │ Mandi  │ │
-│  │Dashboard │ │ Chatbot  │ │  Scanner │ │& Irrig.│ │ Prices │ │
-│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └───┬────┘ └───┬────┘ │
-│       │             │            │            │          │      │
-│  ┌────┴─────────────┴────────────┴────────────┴──────────┴────┐ │
-│  │              Axios Service Layer (REST API)                │ │
-│  │   aiService │ diseaseService │ weatherService │ mandiService│ │
-│  └────────────────────────┬───────────────────────────────────┘ │
-│                           │ HTTP (JSON / FormData)              │
-│  ┌────────────────────────┴───────────────────────────────────┐ │
-│  │         🌐 LanguageContext (Global i18n: EN/HI/TE)         │ │
-│  └────────────────────────────────────────────────────────────┘ │
-└───────────────────────────┬─────────────────────────────────────┘
-                            │
-                    ┌───────▼───────┐
-                    │  Flask Server │
-                    │  (Port 5000)  │
-                    └───────┬───────┘
-                            │
-        ┌───────────────────┼───────────────────┐
-        ▼                   ▼                   ▼
-┌───────────────┐  ┌────────────────┐  ┌────────────────┐
-│ 🔬 Disease    │  │ 🧠 Advisory    │  │ 🌦️ Weather     │
-│ Vision Engine │  │ LLM Engine     │  │ Proxy (OWM)    │
-│ (PyTorch CNN) │  │ (OpenRouter)   │  │                │
-└───────────────┘  └────────────────┘  └────────────────┘
-```
 
 ---
 
-## 🤖 Machine Learning & AI Pipeline
-
-> **Engineered by:** AI & Machine Learning Engineer
-
-### 🔬 Disease Vision Engine (`disease_vision_engine.py`)
-
-| Component | Detail |
-|---|---|
-| **Architecture** | Custom CNN built on PyTorch |
-| **Hardware Acceleration** | NVIDIA CUDA GPU-mapped inference |
-| **Input** | Raw crop leaf images captured via mobile camera |
-| **Output** | Disease classification + confidence score |
-| **Training Script** | `train_vision_model.py` — Full training loop with data augmentation, learning rate scheduling, and checkpointing |
-| **Model Persistence** | `torch.save()` / `torch.load()` with `map_location` for cross-device portability |
-
-**Key ML Engineering Decisions:**
-- Migrated from TensorFlow to **PyTorch** for native Windows CUDA support
-- Implemented `weights_only=False` loading for backward compatibility with legacy checkpoints
-- Designed the inference pipeline to accept raw byte streams from mobile uploads and process them end-to-end
-
-### 🧠 Advisory LLM Engine (`advisory_llm_engine.py`)
-
-| Component | Detail |
-|---|---|
-| **Model** | `stepfun/step-3.5-flash:free` via OpenRouter API |
-| **Architecture** | RAG-style prompt engineering with domain-specific agricultural context |
-| **Capabilities** | Conversational Q&A, disease explanation, irrigation scheduling, crop lifecycle advice |
-| **Multilingual** | Dynamic language injection — responses generated natively in English, Hindi, or Telugu |
-
-**Key AI Engineering Decisions:**
-- Engineered structured JSON prompts that force the LLM to return machine-parseable responses for the Schemes and Mandi features
-- Built regex-based JSON extraction (`re.search(r'\{.*\}')`) to safely parse LLM output even when wrapped in markdown
-- Implemented graceful fallback architecture — if LLM times out, the system degrades to cached data without user disruption
-
-### 🎙️ Speech & Language Engine (`speech_language_engine.py`)
-
-| Component | Detail |
-|---|---|
-| **Speech-to-Text** | Audio file processing pipeline with secure temp-file management |
-| **Text-to-Speech** | Expo Speech API with language-code awareness |
-| **Languages** | English (`en`), Hindi (`hi`), Telugu (`te`) |
-
-### 📊 AI Pipeline Facade (`ai_pipeline.py`)
-
-A **unified orchestration layer** that initializes all ML models and AI engines at server startup:
-- Loads the PyTorch disease model onto GPU/CPU
-- Initializes the OpenRouter LLM context
-- Exposes clean facade methods: `process_plant_image()`, `process_advisory_chat()`, `process_voice_chat()`
-
-### 🧪 Testing & Validation Suite (`testing/`)
-
-| Script | Purpose |
-|---|---|
-| `test_pipeline.py` | End-to-end integration test for all AI pipeline components |
-| `laptop_vision_test.py` | Local webcam-based disease detection test |
-| `visual_accuracy_test.py` | Matplotlib-rendered confusion matrix and accuracy visualization |
-
----
-
-## 📱 Application Features
-
-### 🏠 Smart Dashboard (HomeScreen)
-- **Live Weather Pill** — Real-time temperature, humidity, and conditions from OpenWeatherMap API via GPS coordinates
-- **Dynamic Farm Alerts** — Context-aware alerts generated from live weather (Rain → delay irrigation, Heat → early watering, Frost → monitor crops)
-- **Crop Portfolio** — Quick-access crop chips for personalized farm management
-- **Quick Action Grid** — One-tap access to Disease Scanner, Weather, Market Prices, and Schemes
-
-### 🔬 AI Disease Scanner (DiseaseScreen)
-- Camera-based crop leaf photography
-- Real-time PyTorch CNN inference on the backend
-- Multilingual disease diagnosis with treatment recommendations
-- Confidence scoring for prediction reliability
-
-### 💬 AI Agricultural Advisor (AIScreen)
-- Full conversational chatbot interface with message bubbles
-- Powered by OpenRouter LLM with agricultural domain expertise
-- Text-to-Speech capability for hands-free farming advice
-- Multilingual responses based on selected language
-
-### 🌦️ Weather & Irrigation Intelligence (WeatherScreen)
-- **GPS-Powered Location Tracking** — `expo-location` captures exact farm coordinates
-- **5-Day Forecast Carousel** — Parsed from OpenWeatherMap 3-hour interval data
-- **AI Irrigation Engine** — Dynamically calculates watering recommendations based on temperature, humidity, and precipitation
-- **Temperature Trend Chart** — Visual bar chart showing 5-day temperature patterns
-- **Manual Refresh** — One-tap GPS re-sync for updated forecasts
-
-### 📈 Dynamic Mandi Prices (MarketScreen)
-- **Two-Phase Loading Architecture:**
-  - Phase 1: Instant local data (zero network latency)
-  - Phase 2: Background AI upgrade with LLM-generated market analysis
-- **Multi-Mandi Support** — Tap to switch between Khammam, Hyderabad, Warangal, and more
-- **AI Sell Signals** — LLM-generated trading recommendations
-- **Searchable Crop Table** — Filter crops with real-time search
-
-### 🏛️ Government Scheme Discovery (SchemesScreen)
-- Farmer profile form (name, state, land, crop, category, irrigation)
-- LLM-powered scheme matching — finds the top 5 most relevant Indian agricultural schemes
-- Structured JSON response parsing for clean UI rendering
-
-### 🌐 Global Multilingual System
-- **Languages:** English 🇬🇧 | हिंदी 🇮🇳 | తెలుగు 🇮🇳
-- **Floating Language Selector** — Accessible from every screen
-- **Full UI Translation** — All labels, buttons, and headers localize instantly
-- **AI Response Translation** — Backend LLM receives language code and responds natively
-
----
-
-## ⚙️ Tech Stack
-
-| Layer | Technology |
-|---|---|
-| **Mobile Framework** | React Native + Expo SDK 54 |
-| **Navigation** | Expo Router (File-based) |
-| **State Management** | React Context API |
-| **Network** | Axios with timeout guards |
-| **Backend** | Python Flask + Flask-CORS |
-| **ML Framework** | PyTorch (CUDA-accelerated) |
-| **LLM Provider** | OpenRouter API (`stepfun/step-3.5-flash:free`) |
-| **Weather API** | OpenWeatherMap (Current + Forecast) |
-| **Location** | Expo Location (GPS) |
-| **Speech** | Expo Speech (TTS) |
-| **Styling** | Custom Design System (`appTheme.js` + `sharedStyles.js`) |
-
----
-
-## 🚀 Getting Started
+## 🛠️ Deployment & Installation Strategy
 
 ### Prerequisites
-- Node.js 18+
-- Python 3.11+
-- NVIDIA GPU with CUDA (recommended for ML inference)
-- Expo Go app on Android/iOS
+- **Node.js (v18+)** for the Expo bundler
+- **Python (3.11+)** for the ML pipeline
+- **FFmpeg executable** added to the OS PATH (Essential for Mobile `.m4a` stream decoding)
+- **NVIDIA GPU (CUDA)** highly recommended for optimal PyTorch and HuggingFace execution speeds
 
-### 1. Clone & Install Frontend
-```bash
-git clone https://github.com/your-repo/kisan-ai-shield.git
-cd kisan-ai-shield
-npm install
-```
-
-### 2. Set Up Environment Variables
-Create a `.env` file in the project root:
+### 1. Sourcing API Keys
+Create a `.env` file sequentially at the root of the project to authenticate the cognitive and meteorological external services:
 ```env
 AI_API_KEY=your_openrouter_api_key
 EXPO_PUBLIC_WEATHER_KEY=your_openweathermap_api_key
 ```
 
-### 3. Set Up AI Backend
+### 2. Initializing the Python Backend Service
 ```bash
+# Navigate to the backend service folder
 cd ai-backend
+
+# Instantiate and activate the isolated virtual environment
 python -m venv ai_env
-ai_env\Scripts\activate       # Windows
-pip install flask flask-cors torch torchvision python-dotenv requests openai
-```
+ai_env\Scripts\activate       # Windows System
+# source ai_env/bin/activate  # UNIX System
 
-### 4. Start the Backend Server
-```bash
-cd ai-backend
+# Resolve all pip dependencies including PyTorch and Flask
+pip install flask flask-cors torch torchvision python-dotenv requests openai pydub SpeechRecognition
+
+# Boot the API Gateway
 python app.py
-# Server starts on http://0.0.0.0:5000
 ```
 
-### 5. Start the Mobile App
+### 3. Launching the React Native Client
 ```bash
+# Ensure you are operating within the root kisan-ai-shield/ workspace
+npm install
+
+# Initialize the Expo Dev Server with local Wi-Fi pairing
 npx expo start -c
-# Scan QR code with Expo Go
 ```
-
-> **Note:** Update `BASE_URL` in all service files (`services/*.js`) to match your machine's local IP address.
+*Note: The frontend architecture natively features the `apiConfig.js` service layer, designed to dynamically hunt for the host's Expo LAN IP endpoint. Manual cross-compilation of internal static IP routes is entirely deprecated in v2.0.*
 
 ---
 
-## 📁 Project Structure
+## 🗄️ Application File Tree Overview
 
-```
+```text
 kisan-ai-shield/
-├── ai-backend/
-│   ├── app.py                    # Flask API server (5 endpoints)
-│   ├── ai_pipeline.py            # ML/AI orchestration facade
-│   ├── train_vision_model.py     # PyTorch CNN training script
-│   ├── features/
-│   │   ├── disease_vision_engine.py   # 🔬 PyTorch CNN inference
-│   │   ├── advisory_llm_engine.py     # 🧠 OpenRouter LLM integration
-│   │   ├── speech_language_engine.py  # 🎙️ Multilingual speech
-│   │   ├── weather_advisory.py        # 🌦️ Weather-based recommendations
-│   │   ├── market_prices.py           # 📈 Market data processing
-│   │   ├── gov_schemes.py             # 🏛️ Scheme matching logic
-│   │   └── crop_lifecycle.py          # 🌱 Crop stage tracking
-│   └── testing/
-│       ├── test_pipeline.py           # Integration tests
-│       ├── laptop_vision_test.py      # Local webcam test
-│       └── visual_accuracy_test.py    # Accuracy visualization
-├── screens/
-│   ├── HomeScreen.js             # Dashboard with live weather
-│   ├── AIScreen.js               # Chatbot interface
-│   ├── DiseaseScreen.js          # Camera disease scanner
-│   ├── WeatherScreen.js          # Weather & irrigation
-│   ├── MarketScreen.js           # Dynamic mandi prices
-│   └── SchemesScreen.js          # Government schemes
-├── services/
-│   ├── aiService.js              # AI chatbot network layer
-│   ├── diseaseService.js         # Disease prediction network
-│   ├── weatherService.js         # Weather + GPS integration
-│   ├── mandiService.js           # Market prices (two-phase)
-│   └── schemeService.js          # Scheme fetching
-├── context/
-│   └── LanguageContext.js        # Global i18n provider
-├── components/
-│   └── LanguageSelector.js       # Floating language FAB
-├── constants/
-│   ├── appTheme.js               # Design tokens & colors
-│   ├── sharedStyles.js           # Reusable style objects
-│   └── translations.js           # EN/HI/TE dictionaries
-└── app/
-    └── (tabs)/
-        └── _layout.tsx           # Tab navigation config
+├── ai-backend/                  # Secure ML Environment Segment
+│   ├── app.py                   # Primary WSGI REST API Gateway
+│   ├── ai_pipeline.py           # Facade orchestrating Model inference
+│   ├── features/                # Domain-Driven Microservice Modules
+│   │   ├── disease_vision_engine.py  # Computer Vision Service
+│   │   ├── advisory_llm_engine.py    # Generative RAG Service
+│   │   ├── speech_to_text.py         # FFMPEG Audio Subsystem
+│   │   └── gov_schemes.py            # JSON Semantic Parser
+├── screens/                     # View-Layer Component Renderers
+│   ├── AIScreen.js              # State-managed Audio Chat Interface
+│   ├── DiseaseScreen.js         # Camera & Device Storage Handlers
+│   ├── WeatherScreen.js         # D3/Animated Vector Graph Views
+│   ├── SchemesScreen.js         # Reactive Multi-Step Form Contexts
+├── services/                    # Asynchronous Transport Controllers
+│   ├── apiConfig.js             # DHCP Intranet IP Hunting Loop
+│   ├── aiService.js             # Blob/FormData Network Proxies
+├── constants/                   # Immutables & Tokenization Logic
+└── app/(tabs)/_layout.tsx       # Expo Router Deep Link Configurations
 ```
 
 ---
-
-## 🔌 API Endpoints
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/predict` | Upload crop image → Disease classification (PyTorch CNN) |
-| `POST` | `/chat` | Send text + language → AI advisory response (LLM) |
-| `POST` | `/voice-chat` | Upload audio → Transcribe + AI response |
-| `POST` | `/schemes` | Farmer profile → Top 5 eligible government schemes |
-| `GET`  | `/weather` | Lat/Lon → Current weather + 5-day forecast (OWM proxy) |
-| `POST` | `/mandi-prices` | Mandi name + language → Dynamic crop market prices |
-
----
-
-## 📄 License
-
-This project is developed as part of the **Saagu360** agricultural technology initiative.
-
----
-
+<br/>
 <p align="center">
-  <b>Built with 🌾 for Indian Farmers</b><br/>
-  <i>AI & Machine Learning Engineering | Full-Stack Mobile Development</i>
+  <b>Architected for Enterprise Scale. Engineered for the Farmer.</b><br/>
+  <i>Part of the Saagu360 Agricultural AI Initiative</i>
 </p>

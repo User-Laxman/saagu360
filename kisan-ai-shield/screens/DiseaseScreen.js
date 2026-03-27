@@ -37,6 +37,11 @@ export default function DiseaseScreen() {
     }
   };
 
+  const clearScan = () => {
+    setImageUri(null);
+    setResult(null);
+  };
+
   const analyzeImage = async (uri) => {
     setIsLoading(true);
     try {
@@ -44,7 +49,7 @@ export default function DiseaseScreen() {
       setResult(aiResult);
       // Add to history
       setScanHistory(prev => [
-        { text: aiResult, time: new Date().toLocaleTimeString(), ok: !aiResult.includes('unreachable') },
+        { text: aiResult, time: new Date().toLocaleTimeString(), ok: !aiResult.includes('unreachable'), uri: uri },
         ...prev.slice(0, 4),
       ]);
     } catch (e) {
@@ -94,12 +99,20 @@ export default function DiseaseScreen() {
 
           {imageUri && !isLoading && (
             <View style={styles.rescanRow}>
-              <TouchableOpacity style={styles.rescanBtn} onPress={() => pickImage(true)}>
-                <Text style={styles.rescanText}>{t('cameraRef')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.rescanBtn} onPress={() => pickImage(false)}>
-                <Text style={styles.rescanText}>{t('galleryRef')}</Text>
-              </TouchableOpacity>
+              {result ? (
+                <TouchableOpacity style={[styles.rescanBtn, { backgroundColor: '#e53935' }]} onPress={clearScan}>
+                  <Text style={styles.rescanText}>Refresh Scanner</Text>
+                </TouchableOpacity>
+              ) : (
+                <>
+                  <TouchableOpacity style={styles.rescanBtn} onPress={() => pickImage(true)}>
+                    <Text style={styles.rescanText}>{t('cameraRef')}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.rescanBtn} onPress={() => pickImage(false)}>
+                    <Text style={styles.rescanText}>{t('galleryRef')}</Text>
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
           )}
         </View>

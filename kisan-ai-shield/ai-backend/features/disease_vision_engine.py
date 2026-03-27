@@ -28,8 +28,9 @@ class DiseaseVisionModel:
         self.device = torch.device('cuda' if torch and torch.cuda.is_available() else 'cpu')
         
         # Common transforms for MobileNet V2 (ImageNet normalization)
+        # Note: In production (when HF model is loaded), self.processor handles this.
         if torch:
-            self.transform = transforms.Compose([
+            self._fallback_transform = transforms.Compose([
                 transforms.Resize((224, 224)),
                 transforms.ToTensor(),
                 transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
@@ -57,22 +58,31 @@ class DiseaseVisionModel:
             print(f"[VisionEngine] Initialized OpenRouter fallback ({self.model_name}).")
 
     def _load_model(self):
-        '''Loads the native PyTorch Architecture and Weights into GPU/CPU Memory'''
+        '''Loads the native HuggingFace model via transformers library'''
         if torch and self.model_path and os.path.exists(self.model_path) and len(self.class_labels) > 0:
             try:
-                # 1. Rebuild Architecture
-                self.model = models.mobilenet_v2(weights=None)
-                self.model.classifier[1] = nn.Linear(self.model.last_channel, self.num_classes)
+                # 1. Load checkpoint for model ID
+                checkpoint = torch.load(self.model_path, map_location=self.device)
+                hf_model_id = checkpoint.get("hf_model_id", "linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification")
                 
-                # 2. Load Weights specifically to device
-                self.model.load_state_dict(torch.load(self.model_path, map_location=self.device))
-                self.model = self.model.to(self.device)
-                self.model.eval() # Set inference mode
+                # 2. Rebuild via transformers
+                from transformers import MobileNetV2ImageProcessor, MobileNetV2ForImageClassification
+                self.processor = MobileNetV2ImageProcessor.from_pretrained(hf_model_id)
+                self.model = MobileNetV2ForImageClassification.from_pretrained(hf_model_id)
+                
+                # Load weights from checkpoint
+                if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
+                    self.model.load_state_dict(checkpoint['model_state_dict'])
+                else:
+                    self.model.load_state_dict(checkpoint)
+                
+                self.model = self.model.to(self.device).eval()
+                self.local_to_hf = checkpoint.get("local_to_hf", {})
                 
                 self.model_loaded = True
-                print(f"[VisionEngine] PyTorch Model successfully mapped to: {str(self.device).upper()}")
+                print(f"[VisionEngine] HF Model successfully loaded on: {str(self.device).upper()}")
             except Exception as e:
-                print(f"[VisionEngine] Failed to map PyTorch model: {e}")
+                print(f"[VisionEngine] Failed to load HF model: {e}")
         else:
             if not torch:
                 print("[VisionEngine] PyTorch not installed. Serving cloud fallback.")
@@ -84,20 +94,24 @@ class DiseaseVisionModel:
         '''Main Integration point for Image Analysis.'''
         try:
             if self.model_loaded:
-                # LOCAL GPU ML INFERENCE (PyTorch)
+                # LOCAL HF MODEL INFERENCE
                 img = Image.open(io.BytesIO(image_bytes)).convert('RGB')
-                tensor = self.transform(img).unsqueeze(0) # Add batch dimension -> (1, 3, 224, 224)
-                tensor = tensor.to(self.device)
+                inputs = self.processor(images=img, return_tensors="pt").to(self.device)
                 
                 with torch.no_grad():
-                    outputs = self.model(tensor)
-                    probabilities = torch.nn.functional.softmax(outputs[0], dim=0)
-                    confidence, top_index = torch.max(probabilities, 0)
+                    logits = self.model(**inputs).logits
                     
+                # Project back to local classes
+                hf_indices = [self.local_to_hf.get(i, 0) for i in range(self.num_classes)]
+                hf_tensor  = torch.tensor(hf_indices, device=self.device)
+                projected  = logits[0, hf_tensor]
+                probs      = torch.nn.functional.softmax(projected, dim=0)
+                
+                confidence, top_index = torch.max(probs, 0)
                 top_index_val = int(top_index.item())
                 confidence_val = float(confidence.item())
                 
-                diagnosis = self.class_labels[top_index_val] if top_index_val < len(self.class_labels) else f"Class {top_index_val}"
+                diagnosis = self.class_labels[top_index_val]
                 diagnosis = diagnosis.replace("___", " ").replace("_", " ")
 
                 return {

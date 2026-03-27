@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, ActivityIndicator
@@ -8,6 +8,7 @@ import { COLORS, RADIUS, SHADOW } from '../constants/appTheme';
 import { shared } from '../constants/sharedStyles';
 import { LanguageContext } from '../context/LanguageContext';
 import { fetchWeather } from '../services/weatherService';
+import { useQuery } from '@tanstack/react-query';
 
 const getWeatherEmoji = (main) => {
     const map = {
@@ -34,15 +35,11 @@ const IRRIG_TIPS = [
 
 export default function WeatherScreen() {
   const { t } = useContext(LanguageContext);
-  const [currentWeather, setCurrentWeather] = useState(null);
-  const [forecastList, setForecastList] = useState([]);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const loadWeather = async () => {
-    setIsRefreshing(true);
-    const data = await fetchWeather();
-    if (data) {
-      setCurrentWeather(data.current);
+  const { data: weatherData, isLoading, isRefetching, refetch } = useQuery({
+    queryKey: ['weather'],
+    queryFn: async () => {
+      const data = await fetchWeather();
+      if (!data) return null;
       
       const daily = [];
       const seenDays = new Set();
@@ -61,14 +58,13 @@ export default function WeatherScreen() {
               });
           }
       });
-      setForecastList(daily);
-    }
-    setIsRefreshing(false);
-  };
+      return { current: data.current, forecastList: daily };
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
-  useEffect(() => {
-    loadWeather();
-  }, []);
+  const currentWeather = weatherData?.current;
+  const forecastList = weatherData?.forecastList || [];
 
   const getIrrigationAdvice = (current) => {
     if (!current) return { title: 'WAITING FOR METRICS', desc: 'Analyzing soil dynamics...' };
@@ -84,11 +80,11 @@ export default function WeatherScreen() {
     return { title: 'LIGHT WATERING', desc: 'Variables are extremely stable. Maintain regular schedule.' };
   };
 
-  if (!currentWeather) {
+  if (isLoading || !currentWeather) {
     return (
       <SafeAreaView style={[styles.safe, {justifyContent: 'center', alignItems: 'center'}]}>
         <ActivityIndicator size="large" color="#1565C0" />
-        <Text style={{color: '#666', marginTop: 10}}>{isRefreshing ? 'Locating farm...' : 'Loading real-time weather...'}</Text>
+        <Text style={{color: '#666', marginTop: 10}}>{isLoading ? 'Locating farm...' : 'Loading real-time weather...'}</Text>
       </SafeAreaView>
     );
   }
@@ -104,9 +100,9 @@ export default function WeatherScreen() {
           <View style={styles.locationRow}>
             <Text style={{ fontSize: 16 }}>📍</Text>
             <Text style={styles.locationText}>{currentWeather.name}</Text>
-            <TouchableOpacity onPress={loadWeather} disabled={isRefreshing} style={{ marginLeft: 10, backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+            <TouchableOpacity onPress={() => refetch()} disabled={isRefetching} style={{ marginLeft: 10, backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
               <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>
-                {isRefreshing ? '↻ Syncing...' : '↻ Refresh VIP'}
+                {isRefetching ? '↻ Syncing...' : '↻ Refresh VIP'}
               </Text>
             </TouchableOpacity>
           </View>

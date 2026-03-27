@@ -12,15 +12,18 @@ import {
     SafeAreaView,
 } from "react-native";
 import { shared } from "../constants/sharedStyles";
-import { getAIResponse } from "../services/aiService";
+import { getAIResponse, sendVoiceQuery } from "../services/aiService";
 import { speakText } from "../utils/speech";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Speech from 'expo-speech';
+import { Audio } from 'expo-av';
 import { LanguageContext } from "../context/LanguageContext";
 
 export default function AIScreen() {
     const { t, language } = useContext(LanguageContext);
     const [input, setInput] = useState("");
+    const [recording, setRecording] = useState(null);
+    const [isRecording, setIsRecording] = useState(false);
     const [messages, setMessages] = useState([
         {
             id: "welcome",
@@ -30,6 +33,61 @@ export default function AIScreen() {
     ]);
     const [isLoading, setIsLoading] = useState(false);
     const flatListRef = useRef(null);
+
+    const startRecording = async () => {
+        try {
+            const permission = await Audio.requestPermissionsAsync();
+            if (permission.status === 'granted') {
+                await Audio.setAudioModeAsync({
+                    allowsRecordingIOS: true,
+                    playsInSilentModeIOS: true,
+                });
+                setIsRecording(true);
+                const { recording } = await Audio.Recording.createAsync(
+                    Audio.RecordingOptionsPresets.HIGH_QUALITY
+                );
+                setRecording(recording);
+            } else {
+                alert(t('aiConnectionError') || "Microphone permission is required.");
+            }
+        } catch (err) {
+            console.error('Failed to start recording', err);
+            setIsRecording(false);
+        }
+    };
+
+    const stopRecording = async () => {
+        setIsRecording(false);
+        if (!recording) return;
+        try {
+            await recording.stopAndUnloadAsync();
+            const uri = recording.getURI();
+            setRecording(null);
+            
+            setIsLoading(true);
+            const userTempMsg = { id: Date.now().toString(), role: "user", text: "... 🎙️" };
+            setMessages((prev) => [...prev, userTempMsg]);
+
+            const aiResponse = await sendVoiceQuery(uri, language);
+            
+            setMessages((prev) => prev.filter(msg => msg.id !== userTempMsg.id));
+
+            if (aiResponse.error) {
+                const errMsg = { id: Date.now().toString(), role: "bot", text: aiResponse.error };
+                setMessages((prev) => [...prev, errMsg]);
+            } else {
+                const userMsg = { id: Date.now().toString() + "u", role: "user", text: aiResponse.text || "Voice audio" };
+                const botMsg = { id: Date.now().toString() + "b", role: "bot", text: aiResponse.response };
+                setMessages((prev) => [...prev, userMsg, botMsg]);
+                speakText(aiResponse.response);
+            }
+        } catch (error) {
+            console.error('Failed to stop recording or processing', error);
+        } finally {
+            setIsLoading(false);
+            await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+        }
+    };
 
     const handleSend = async () => {
         const trimmed = input.trim();
@@ -98,8 +156,8 @@ export default function AIScreen() {
         <SafeAreaView style={shared.safe}>
             <KeyboardAvoidingView
                 style={styles.container}
-                behavior={Platform.OS === "ios" ? "padding" : undefined}
-                keyboardVerticalOffset={90}
+                behavior={Platform.OS === "ios" ? "padding" : "padding"}
+                keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 25}
             >
             {/* HEADER */}
             <View style={styles.header}>
@@ -135,6 +193,24 @@ export default function AIScreen() {
                     onSubmitEditing={handleSend}
                     returnKeyType="send"
                 />
+
+                {isRecording ? (
+                    <TouchableOpacity
+                        style={[styles.sendBtn, { backgroundColor: '#d32f2f' }]}
+                        onPress={stopRecording}
+                    >
+                        <MaterialCommunityIcons name="stop" size={22} color="#fff" />
+                    </TouchableOpacity>
+                ) : (
+                    <TouchableOpacity
+                        style={[styles.sendBtn, { backgroundColor: '#388e3c', marginRight: 4 }]}
+                        onPress={startRecording}
+                        disabled={isLoading}
+                    >
+                        <MaterialCommunityIcons name="microphone" size={22} color="#fff" />
+                    </TouchableOpacity>
+                )}
+
                 <TouchableOpacity
                     style={[styles.sendBtn, isLoading && { opacity: 0.5 }]}
                     onPress={handleSend}
