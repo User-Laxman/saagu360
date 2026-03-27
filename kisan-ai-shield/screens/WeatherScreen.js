@@ -4,7 +4,7 @@ import {
   StyleSheet, SafeAreaView, ActivityIndicator
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS, RADIUS, SHADOW } from '../constants/appTheme';
+import { COLORS, FONTS, RADIUS, SHADOW, SPACING } from '../constants/appTheme';
 import { shared } from '../constants/sharedStyles';
 import { LanguageContext } from '../context/LanguageContext';
 import { fetchWeather } from '../services/weatherService';
@@ -173,71 +173,71 @@ export default function WeatherScreen() {
 const styles = StyleSheet.create({
   safe:   shared.safe,
   header: {
-    backgroundColor: '#1565C0',
-    paddingHorizontal: 20, paddingTop: 16, paddingBottom: 28,
+    backgroundColor: COLORS.blue,
+    paddingHorizontal: SPACING.xl, paddingTop: SPACING.lg, paddingBottom: 28,
     overflow: 'hidden',
   },
-  pageTitle:   { fontSize: 24, fontWeight: '800', color: '#fff', marginBottom: 6 },
-  locationRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  locationText:{ color: 'rgba(255,255,255,0.9)', fontSize: 13, fontWeight: '600', marginLeft: 4 },
+  pageTitle:   { fontSize: 25, fontFamily: FONTS.headingXl, color: '#fff', marginBottom: 6 },
+  locationRow: { flexDirection: 'row', alignItems: 'center', marginBottom: SPACING.md },
+  locationText:{ color: 'rgba(255,255,255,0.9)', fontSize: 14, fontFamily: FONTS.bodySemi, marginLeft: 4 },
   cloudBg:     { position: 'absolute', top: 10, right: 10 },
-  location:    { color: 'rgba(255,255,255,0.85)', fontSize: 12, fontWeight: '600', marginBottom: 12 },
+  location:    { color: 'rgba(255,255,255,0.85)', fontSize: 12, fontFamily: FONTS.bodySemi, marginBottom: SPACING.md },
   mainWeather: { alignItems: 'center' },
-  tempBig:     { color: '#fff', fontSize: 60, fontWeight: '800', lineHeight: 68 },
-  condition:   { color: '#fff', fontSize: 16, fontWeight: '600', marginTop: 2 },
-  feelsLike:   { color: 'rgba(255,255,255,0.75)', fontSize: 11, fontWeight: '500', marginTop: 4, marginBottom: 16 },
+  tempBig:     { color: '#fff', fontSize: 60, fontFamily: FONTS.headingXl, lineHeight: 68 },
+  condition:   { color: '#fff', fontSize: 16, fontFamily: FONTS.bodySemi, marginTop: 2 },
+  feelsLike:   { color: 'rgba(255,255,255,0.75)', fontSize: 12, fontFamily: FONTS.bodyMed, marginTop: 4, marginBottom: SPACING.lg },
   statsRow:    { flexDirection: 'row', gap: 24 },
   statItem:    { alignItems: 'center' },
-  statVal:     { color: '#fff', fontSize: 14, fontWeight: '800' },
-  statLabel:   { color: 'rgba(255,255,255,0.7)', fontSize: 9, fontWeight: '500', marginTop: 2 },
+  statVal:     { color: '#fff', fontSize: 14, fontFamily: FONTS.headingXl },
+  statLabel:   { color: 'rgba(255,255,255,0.7)', fontSize: 9, fontFamily: FONTS.bodyMed, marginTop: 2 },
 
   content:      shared.content,
   sectionTitle: shared.sectionTitle,
 
   fcCard: {
     alignItems: 'center', backgroundColor: COLORS.white,
-    borderRadius: RADIUS.md, padding: 12,
-    marginRight: 8, minWidth: 66,
+    borderRadius: RADIUS.md, padding: SPACING.md,
+    marginRight: SPACING.sm, minWidth: 66,
     borderWidth: 1.5, borderColor: COLORS.gray100,
     ...SHADOW.card, gap: 4,
   },
-  fcCardToday: { backgroundColor: '#E3F2FD', borderColor: '#90CAF9' },
-  fcDay:       { fontSize: 10, fontWeight: '600', color: COLORS.gray600 },
-  fcDayToday:  { color: '#1565C0', fontWeight: '800' },
-  fcTemp:      { fontSize: 13, fontWeight: '800', color: COLORS.gray800 },
+  fcCardToday: { backgroundColor: COLORS.blueBg, borderColor: '#90CAF9' },
+  fcDay:       { fontSize: 11, fontFamily: FONTS.bodySemi, color: COLORS.gray600 },
+  fcDayToday:  { color: COLORS.blue, fontFamily: FONTS.headingXl },
+  fcTemp:      { fontSize: 14, fontFamily: FONTS.headingXl, color: COLORS.gray800 },
 
   irrigCard: {
     backgroundColor: COLORS.green50,
     borderWidth: 2, borderColor: COLORS.green200,
-    borderRadius: RADIUS.xl, padding: 14, marginBottom: 12,
+    borderRadius: RADIUS.xl, padding: 14, marginBottom: SPACING.md,
   },
-  irrigHead:      { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
-  irrigHeadText:  { fontSize: 13, fontWeight: '700', color: COLORS.green800 },
+  irrigHead:      { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginBottom: 10 },
+  irrigHeadText:  { fontSize: 13, fontFamily: FONTS.bodyBold, color: COLORS.green800 },
   irrigStatus: {
-    backgroundColor: COLORS.green800, borderRadius: 12,
+    backgroundColor: COLORS.green800, borderRadius: RADIUS.md,
     padding: 10, flexDirection: 'row',
     justifyContent: 'space-between', alignItems: 'center', marginBottom: 10,
   },
-  irrigStatusLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 11, fontWeight: '600' },
-  irrigStatusVal:   { color: '#fff', fontSize: 13, fontWeight: '800' },
-  irrigTip:         { fontSize: 10.5, color: COLORS.gray600, fontWeight: '500', lineHeight: 16 },
+  irrigStatusLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 11, fontFamily: FONTS.bodySemi },
+  irrigStatusVal:   { color: '#fff', fontSize: 13, fontFamily: FONTS.headingXl },
+  irrigTip:         { fontSize: 10.5, color: COLORS.gray600, fontFamily: FONTS.bodyMed, lineHeight: 16 },
 
   stormAlert: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: COLORS.amberBg,
     borderWidth: 1.5, borderColor: '#FFE082',
-    borderRadius: RADIUS.lg, padding: 12, marginBottom: 16,
+    borderRadius: RADIUS.lg, padding: SPACING.md, marginBottom: SPACING.lg,
   },
-  alertTitle: { fontSize: 12, fontWeight: '700', color: '#E65100' },
-  alertDesc:  { fontSize: 10, color: '#BF360C', fontWeight: '500', marginTop: 2 },
+  alertTitle: { fontSize: 13, fontFamily: FONTS.bodyBold, color: COLORS.orange },
+  alertDesc:  { fontSize: 11, color: '#BF360C', fontFamily: FONTS.bodyMed, marginTop: 2 },
 
   barChart: {
     flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between',
     backgroundColor: COLORS.white, borderRadius: RADIUS.lg,
-    padding: 16, ...SHADOW.card, height: 130,
+    padding: SPACING.lg, ...SHADOW.card, height: 130,
   },
   barCol:   { alignItems: 'center', flex: 1, justifyContent: 'flex-end', gap: 3 },
-  barMm:    { fontSize: 8, color: '#1565C0', fontWeight: '700' },
+  barMm:    { fontSize: 8, color: COLORS.blue, fontFamily: FONTS.bodyBold },
   barFill:  { width: 14, borderRadius: 4, minHeight: 4 },
   barDay:   { fontSize: 9, color: COLORS.gray600, fontWeight: '600' },
 });

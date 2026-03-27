@@ -1,12 +1,12 @@
 import React, { useContext } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { LanguageContext } from '../context/LanguageContext';
-import { COLORS } from '../constants/appTheme';
+import { COLORS, FONTS, SHADOW, SPACING } from '../constants/appTheme';
 
 const LANGS = [
-  { code: 'en', label: 'English' },
-  { code: 'hi', label: 'हिंदी' },
-  { code: 'te', label: 'తెలుగు' }
+  { code: 'en', label: 'EN' },
+  { code: 'hi', label: 'हि' },
+  { code: 'te', label: 'తె' }
 ];
 
 export default function LanguageSelector() {
@@ -19,6 +19,7 @@ export default function LanguageSelector() {
           key={l.code}
           style={[styles.btn, language === l.code && styles.btnActive]}
           onPress={() => changeLanguage(l.code)}
+          hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
         >
           <Text style={[styles.text, language === l.code && styles.textActive]}>
             {l.label}
@@ -32,34 +33,32 @@ export default function LanguageSelector() {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 20, // Sit cleanly above the tabs natively within the screen boundary
-    left: 20,   // Bottom left corner
+    bottom: 20,
+    left: 20,
     flexDirection: 'row',
     backgroundColor: COLORS.white,
-    borderRadius: 24,
-    padding: 6, // Slightly thicker padding for touch targets
-    elevation: 10, // Force clear of Tabs Navigator on Android
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    zIndex: 9999, // Ensure it floats above absolutely everything
+    borderRadius: 28,
+    padding: 5,
+    ...SHADOW.elevated,
+    zIndex: 9999,
   },
   btn: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 16,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   btnActive: {
     backgroundColor: COLORS.green800,
   },
   text: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 13,
+    fontFamily: FONTS.bodySemi,
     color: COLORS.gray600,
   },
   textActive: {
     color: COLORS.white,
-    fontWeight: '800',
+    fontFamily: FONTS.bodyBold,
   }
 });

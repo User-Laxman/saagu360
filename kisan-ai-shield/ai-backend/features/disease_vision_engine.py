@@ -114,6 +114,16 @@ class DiseaseVisionModel:
                 diagnosis = self.class_labels[top_index_val]
                 diagnosis = diagnosis.replace("___", " ").replace("_", " ")
 
+                # Confidence threshold — reject low-quality predictions
+                if confidence_val < 0.40:
+                    return {
+                        "success": True,
+                        "diagnosis": "Unable to identify — image quality is too low or crop is not recognized",
+                        "confidence_score": round(confidence_val, 4),
+                        "visual_severity": "Low",
+                        "recommendation": "Please retake the photo with better lighting and a closer view of the affected leaf."
+                    }
+
                 return {
                     "success": True,
                     "diagnosis": diagnosis,

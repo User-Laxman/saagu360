@@ -20,18 +20,24 @@ export const predictDisease = async (imageUri, language = 'en') => {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
+            timeout: 30000, // 30s timeout for vision inference
         });
 
         if (response.data.success) {
-            // The pipeline returns { success, diagnosis, confidence_score }
-            const percentage = (response.data.confidence_score * 100).toFixed(1);
-            return `${response.data.diagnosis}\nConfidence: ${percentage}%`;
+            // Return the structured object directly — screens consume this as-is
+            return {
+                success: true,
+                diagnosis: response.data.diagnosis,
+                confidence: response.data.confidence_score,
+                severity: response.data.visual_severity,
+                recommendation: response.data.recommendation,
+            };
         } else {
             console.error("Vision Error:", response.data.error);
-            return "Unable to identify disease.";
+            return { success: false, error: response.data.error || "Unable to identify disease." };
         }
     } catch (error) {
         console.error("Axios Network Error:", error.message);
-        return "Scanner is unreachable. Ensure the backend is active.";
+        return { success: false, error: "Scanner is unreachable. Ensure the backend is active." };
     }
 };

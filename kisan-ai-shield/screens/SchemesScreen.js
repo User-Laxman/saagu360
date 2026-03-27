@@ -1,12 +1,13 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
   StyleSheet, SafeAreaView, ActivityIndicator, Alert,
 } from 'react-native';
-import { COLORS, RADIUS, SHADOW } from '../constants/appTheme';
+import { COLORS, FONTS, RADIUS, SHADOW, SPACING } from '../constants/appTheme';
 import { shared } from '../constants/sharedStyles';
 import { fetchEligibleSchemes } from '../services/schemeService';
 import { LanguageContext } from '../context/LanguageContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STATES = [
   'Telangana', 'Andhra Pradesh', 'Maharashtra', 'Karnataka',
@@ -38,6 +39,29 @@ export default function SchemesScreen() {
   const [crop, setCrop] = useState('');
   const [category, setCategory] = useState('');
   const [irrigation, setIrrigation] = useState('');
+
+  // Load saved farmer profile on mount
+  useEffect(() => {
+    AsyncStorage.getItem('kisan_farmer_profile').then(saved => {
+      if (saved) {
+        try {
+          const p = JSON.parse(saved);
+          if (p.name) setName(p.name);
+          if (p.state) setState(p.state);
+          if (p.landAcres) setLandAcres(p.landAcres);
+          if (p.crop) setCrop(p.crop);
+          if (p.category) setCategory(p.category);
+          if (p.irrigation) setIrrigation(p.irrigation);
+        } catch(e) {}
+      }
+    });
+  }, []);
+
+  // Save profile whenever a field changes
+  useEffect(() => {
+    const profile = { name, state, landAcres, crop, category, irrigation };
+    AsyncStorage.setItem('kisan_farmer_profile', JSON.stringify(profile));
+  }, [name, state, landAcres, crop, category, irrigation]);
 
   const handleSubmit = async () => {
     if (!name.trim() || !state || !landAcres.trim() || !crop || !category) {
@@ -251,40 +275,40 @@ const styles = StyleSheet.create({
     ...SHADOW.card,
     borderWidth: 1.5, borderColor: COLORS.gray100,
   },
-  formTitle: { fontSize: 16, fontWeight: '800', color: COLORS.gray800, marginBottom: 4 },
-  formDesc: { fontSize: 11, color: COLORS.gray600, marginBottom: 16, lineHeight: 16 },
+  formTitle: { fontSize: 17, fontFamily: FONTS.headingXl, color: COLORS.gray800, marginBottom: 4 },
+  formDesc: { fontSize: 12, color: COLORS.gray800, marginBottom: SPACING.lg, lineHeight: 18, fontFamily: FONTS.body },
   fieldBlock: { marginBottom: 14 },
-  fieldLabel: { fontSize: 11, fontWeight: '700', color: COLORS.gray800, marginBottom: 6 },
+  fieldLabel: { fontSize: 12, fontFamily: FONTS.bodyBold, color: COLORS.gray800, marginBottom: 6 },
   textInput: {
     backgroundColor: COLORS.gray100, borderRadius: RADIUS.sm,
     paddingHorizontal: 14, paddingVertical: 10,
     fontSize: 13, color: COLORS.gray800, fontWeight: '500',
   },
   chip: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+    paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20,
     backgroundColor: COLORS.white, borderWidth: 1.5, borderColor: COLORS.gray100,
     marginRight: 8,
   },
   chipActive: { backgroundColor: '#4A148C', borderColor: '#4A148C' },
-  chipText: { fontSize: 11, fontWeight: '600', color: COLORS.gray600 },
+  chipText: { fontSize: 12, fontFamily: FONTS.bodySemi, color: COLORS.gray600 },
   chipTextActive: { color: '#fff' },
   submitBtn: {
     backgroundColor: COLORS.green800, borderRadius: RADIUS.sm,
-    paddingVertical: 14, alignItems: 'center', marginTop: 8,
+    paddingVertical: 14, alignItems: 'center', marginTop: SPACING.sm,
   },
-  submitBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  submitBtnText: { color: '#fff', fontSize: 15, fontFamily: FONTS.bodyBold },
 
   // ── Loading ──
-  loadingState: { alignItems: 'center', paddingVertical: 60, gap: 12 },
-  loadingText: { fontSize: 14, fontWeight: '700', color: COLORS.gray800 },
-  loadingSub: { fontSize: 11, color: COLORS.gray600 },
+  loadingState: { alignItems: 'center', paddingVertical: 60, gap: SPACING.md },
+  loadingText: { fontSize: 15, fontFamily: FONTS.bodyBold, color: COLORS.gray800 },
+  loadingSub: { fontSize: 11, color: COLORS.gray600, fontFamily: FONTS.body },
 
   // ── Error ──
   errorCard: {
     alignItems: 'center', backgroundColor: COLORS.redBg,
-    borderRadius: RADIUS.lg, padding: 20, gap: 10,
+    borderRadius: RADIUS.lg, padding: SPACING.xl, gap: 10,
   },
-  errorText: { fontSize: 12, color: COLORS.red, textAlign: 'center', fontWeight: '500' },
+  errorText: { fontSize: 13, color: COLORS.red, textAlign: 'center', fontFamily: FONTS.bodyMed },
 
   // ── Results ──
   editProfileBtn: {
@@ -292,28 +316,28 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(74,20,140,0.1)', borderRadius: 20,
     paddingHorizontal: 14, paddingVertical: 7, marginBottom: 14,
   },
-  editProfileText: { fontSize: 11, fontWeight: '600', color: '#4A148C' },
+  editProfileText: { fontSize: 11, fontFamily: FONTS.bodySemi, color: '#4A148C' },
 
   schemeCard: {
     backgroundColor: COLORS.white, borderRadius: RADIUS.xl,
-    padding: 14, marginBottom: 12, ...SHADOW.card,
+    padding: 14, marginBottom: SPACING.md, ...SHADOW.card,
     borderWidth: 1.5, borderColor: COLORS.gray100,
   },
   scTop: { flexDirection: 'row', gap: 10, marginBottom: 10, alignItems: 'flex-start' },
   scIcon: { width: 46, height: 46, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  scName: { fontSize: 12.5, fontWeight: '800', color: COLORS.gray800, lineHeight: 18 },
-  scMinistry: { fontSize: 10, color: COLORS.gray600, fontWeight: '500', marginTop: 2 },
-  scTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
+  scName: { fontSize: 14, fontFamily: FONTS.headingXl, color: COLORS.gray800, lineHeight: 20 },
+  scMinistry: { fontSize: 11, color: COLORS.gray800, fontFamily: FONTS.bodyMed, marginTop: 2 },
+  scTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: SPACING.sm },
   scTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
-  scTagText: { fontSize: 9, fontWeight: '700' },
-  scDesc: { fontSize: 10.5, color: COLORS.gray600, lineHeight: 16, fontWeight: '500' },
+  scTagText: { fontSize: 10, fontFamily: FONTS.bodyBold },
+  scDesc: { fontSize: 12, color: COLORS.gray800, lineHeight: 18, fontFamily: FONTS.bodyMed },
 
   // ── Empty / Retry ──
   emptyState: { alignItems: 'center', paddingVertical: 40, gap: 10 },
-  emptyText: { fontSize: 13, color: COLORS.gray600, fontWeight: '500', textAlign: 'center' },
+  emptyText: { fontSize: 14, color: COLORS.gray800, fontFamily: FONTS.bodyMed, textAlign: 'center' },
   retryBtn: {
     backgroundColor: COLORS.green100, borderRadius: 20,
-    paddingHorizontal: 16, paddingVertical: 8, marginTop: 8,
+    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm, marginTop: SPACING.sm,
   },
-  retryText: { fontSize: 12, fontWeight: '600', color: COLORS.green800 },
+  retryText: { fontSize: 12, fontFamily: FONTS.bodySemi, color: COLORS.green800 },
 });

@@ -2,13 +2,8 @@
  * Shared style objects reused across multiple screens.
  * Exported as plain objects (NOT StyleSheet.create) so they can
  * safely be spread inside each screen's own StyleSheet.create().
- *
- * Usage:
- *   import { shared } from '../constants/sharedStyles';
- *   const styles = StyleSheet.create({ safe: shared.safe, ... });
- *   // or directly in JSX:  style={shared.badge}
  */
-import { COLORS, FONTS, RADIUS, SHADOW } from './appTheme';
+import { COLORS, FONTS, RADIUS, SHADOW, SPACING } from './appTheme';
 import { Platform, StatusBar } from 'react-native';
 
 export const shared = {
@@ -19,15 +14,16 @@ export const shared = {
     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   content: {
-    padding: 16,
+    padding: SPACING.lg,
   },
 
   // ── Section headings ─────────────────────────────────────────────────
   sectionTitle: {
-    fontFamily: FONTS.sansExtra,
-    fontSize: 14,
+    fontFamily: FONTS.bodyBold,
+    fontSize: 15,
     color: COLORS.gray800,
     marginBottom: 10,
+    letterSpacing: 0.3,
   },
   sectionRow: {
     flexDirection: 'row',
@@ -36,8 +32,8 @@ export const shared = {
     marginBottom: 10,
   },
   seeAll: {
-    fontFamily: FONTS.sansBold,
-    fontSize: 12,
+    fontFamily: FONTS.bodySemi,
+    fontSize: 13,
     color: COLORS.green600,
   },
 
@@ -54,21 +50,21 @@ export const shared = {
     backgroundColor: COLORS.redBg,
   },
   badgeText: {
-    fontFamily: FONTS.sansExtra,
-    fontSize: 10,
+    fontFamily: FONTS.bodyBold,
+    fontSize: 11,
   },
 
   // ── Page header text (Disease, Market, Schemes) ───────────────────────
   pageTitle: {
     color: '#fff',
-    fontFamily: FONTS.serif,
-    fontSize: 24,
+    fontFamily: FONTS.headingXl,
+    fontSize: 25,
     marginBottom: 2,
   },
   pageSub: {
-    color: 'rgba(255,255,255,0.8)',
-    fontFamily: FONTS.sans,
-    fontSize: 12,
+    color: 'rgba(255,255,255,0.85)',
+    fontFamily: FONTS.bodyMed,
+    fontSize: 13,
     marginBottom: 8,
   },
 };

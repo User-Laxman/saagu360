@@ -26,7 +26,7 @@ class AdvisoryLLM:
 
     def fetch_weather_context(self, lat, lon):
         '''Internal tool call: Fetch live weather'''
-        weather_key = os.environ.get("OPENWEATHER_API_KEY", "")
+        weather_key = os.environ.get("OPENWEATHER_API_KEY") or os.environ.get("EXPO_PUBLIC_WEATHER_KEY", "")
         if not weather_key:
             return "No live weather available."
             
@@ -71,7 +71,7 @@ class AdvisoryLLM:
                 "Content-Type": "application/json"
             }
 
-            res = requests.post("https://openrouter.ai/api/v1/chat/completions", json=payload, headers=headers)
+            res = requests.post("https://openrouter.ai/api/v1/chat/completions", json=payload, headers=headers, timeout=30)
             
             if res.status_code != 200:
                 raise Exception(f"API Error {res.status_code}: {res.text}")

@@ -1,13 +1,14 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, Image,
   StyleSheet, SafeAreaView, ActivityIndicator,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { predictDisease } from '../services/diseaseService';
-import { COLORS, RADIUS, SHADOW } from '../constants/appTheme';
+import { COLORS, FONTS, RADIUS, SHADOW, SPACING } from '../constants/appTheme';
 import { shared } from '../constants/sharedStyles';
 import { LanguageContext } from '../context/LanguageContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function DiseaseScreen() {
   const { t, language } = useContext(LanguageContext);
@@ -15,6 +16,15 @@ export default function DiseaseScreen() {
   const [result, setResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [scanHistory, setScanHistory] = useState([]);
+
+  // Load persisted scan history on mount
+  useEffect(() => {
+    AsyncStorage.getItem('kisan_scan_history').then(saved => {
+      if (saved) {
+        try { setScanHistory(JSON.parse(saved)); } catch(e) {}
+      }
+    });
+  }, []);
 
   const pickImage = async (fromCamera = false) => {
     let pickerResult;
@@ -47,21 +57,25 @@ export default function DiseaseScreen() {
     try {
       const aiResult = await predictDisease(uri, language);
       setResult(aiResult);
-      // Add to history
-      setScanHistory(prev => [
-        { text: aiResult, time: new Date().toLocaleTimeString(), ok: !aiResult.includes('unreachable'), uri: uri },
-        ...prev.slice(0, 4),
-      ]);
+      // Add to history and persist
+      setScanHistory(prev => {
+        const updated = [
+          { result: aiResult, time: new Date().toLocaleTimeString(), uri: uri },
+          ...prev.slice(0, 4),
+        ];
+        AsyncStorage.setItem('kisan_scan_history', JSON.stringify(updated));
+        return updated;
+      });
     } catch (e) {
-      setResult('Analysis failed. Please try again.');
+      setResult({ success: false, error: 'Analysis failed. Please try again.' });
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Parse result string for display
-  const parsedDiagnosis = result ? result.split('\n')[0] : null;
-  const parsedConfidence = result && result.includes('Confidence') ? result.split('Confidence: ')[1] : null;
+  // Parse result object for display
+  const parsedDiagnosis = result?.success ? result.diagnosis : (result?.error || null);
+  const parsedConfidence = result?.success ? `${(result.confidence * 100).toFixed(1)}%` : null;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -164,15 +178,15 @@ export default function DiseaseScreen() {
               {scanHistory.map((s, i) => (
                 <View key={i} style={styles.prevCard}>
                   <View style={styles.prevThumb}>
-                    <Text style={{ fontSize: 20 }}>{s.ok ? '🌿' : '⚠️'}</Text>
+                    <Text style={{ fontSize: 20 }}>{s.result?.success ? '🌿' : '⚠️'}</Text>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.prevName}>{s.text.split('\n')[0]}</Text>
+                    <Text style={styles.prevName}>{s.result?.diagnosis || s.result?.error || 'Unknown'}</Text>
                     <Text style={styles.prevDate}>{s.time}</Text>
                   </View>
-                  <View style={[shared.badge, s.ok ? shared.badgeGreen : shared.badgeRed]}>
-                    <Text style={[shared.badgeText, { color: s.ok ? COLORS.green800 : COLORS.red }]}>
-                      {s.ok ? 'Done' : 'Error'}
+                  <View style={[shared.badge, s.result?.success ? shared.badgeGreen : shared.badgeRed]}>
+                    <Text style={[shared.badgeText, { color: s.result?.success ? COLORS.green800 : COLORS.red }]}>
+                      {s.result?.success ? 'Done' : 'Error'}
                     </Text>
                   </View>
                 </View>
@@ -194,8 +208,8 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 24,
   },
-  pageTitle: { color: '#fff', fontSize: 20, fontWeight: '800', marginBottom: 2 },
-  pageSub: { color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: '500', marginBottom: 16 },
+  pageTitle: { color: '#fff', fontSize: 21, fontFamily: FONTS.headingXl, marginBottom: 2 },
+  pageSub: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontFamily: FONTS.bodyMed, marginBottom: SPACING.lg },
 
   scanButtonsRow: {
     flexDirection: 'row',
@@ -208,8 +222,8 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed', borderRadius: RADIUS.lg,
     height: 140, alignItems: 'center', justifyContent: 'center', gap: 6,
   },
-  scanText: { color: 'rgba(255,255,255,0.9)', fontSize: 14, fontWeight: '700' },
-  scanSub: { color: 'rgba(255,255,255,0.6)', fontSize: 10 },
+  scanText: { color: 'rgba(255,255,255,0.9)', fontSize: 15, fontFamily: FONTS.bodyBold },
+  scanSub: { color: 'rgba(255,255,255,0.6)', fontSize: 11, fontFamily: FONTS.body },
 
   previewWrap: {
     borderRadius: RADIUS.lg,
@@ -265,19 +279,19 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.green200,
     alignItems: 'center', justifyContent: 'center',
   },
-  resultName: { fontSize: 14, fontWeight: '800', color: COLORS.gray800 },
-  resultConf: { fontSize: 11, color: COLORS.green600, fontWeight: '600', marginTop: 2 },
+  resultName: { fontSize: 15, fontFamily: FONTS.headingXl, color: COLORS.gray800 },
+  resultConf: { fontSize: 12, color: COLORS.green600, fontFamily: FONTS.bodySemi, marginTop: 2 },
   severityBadge: { backgroundColor: COLORS.redBg, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3, alignSelf: 'flex-start', marginTop: 4 },
-  severityText: { fontSize: 10, color: COLORS.red, fontWeight: '700' },
+  severityText: { fontSize: 11, color: COLORS.red, fontFamily: FONTS.bodyBold },
   divider: { height: 1, backgroundColor: COLORS.green200, marginBottom: 10 },
-  remedyTitle: { fontSize: 11, fontWeight: '700', color: COLORS.gray800, marginBottom: 6 },
-  remedyText: { fontSize: 10.5, color: COLORS.gray600, lineHeight: 16, fontWeight: '500' },
+  remedyTitle: { fontSize: 12, fontFamily: FONTS.bodyBold, color: COLORS.gray800, marginBottom: 6 },
+  remedyText: { fontSize: 12, color: COLORS.gray800, lineHeight: 18, fontFamily: FONTS.bodyMed },
 
   emptyState: {
     alignItems: 'center', paddingVertical: 40, gap: 8,
   },
-  emptyTitle: { fontSize: 16, fontWeight: '700', color: COLORS.gray800 },
-  emptyDesc: { fontSize: 12, color: COLORS.gray600, textAlign: 'center', lineHeight: 18, paddingHorizontal: 20 },
+  emptyTitle: { fontSize: 16, fontFamily: FONTS.heading, color: COLORS.gray800 },
+  emptyDesc: { fontSize: 12, color: COLORS.gray600, textAlign: 'center', lineHeight: 18, paddingHorizontal: 20, fontFamily: FONTS.body },
 
   sectionRow: shared.sectionRow,
   sectionTitle: shared.sectionTitle,
@@ -292,6 +306,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.green100,
     alignItems: 'center', justifyContent: 'center', marginRight: 10,
   },
-  prevName: { fontSize: 11.5, fontWeight: '700', color: COLORS.gray800 },
-  prevDate: { fontSize: 10, color: COLORS.gray600, marginTop: 2 },
+  prevName: { fontSize: 13, fontFamily: FONTS.bodyBold, color: COLORS.gray800 },
+  prevDate: { fontSize: 11, color: COLORS.gray800, marginTop: 2, fontFamily: FONTS.body },
 });

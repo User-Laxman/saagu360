@@ -1,4 +1,6 @@
 import os
+import re
+import json as json_mod
 import tempfile
 import uuid
 import requests
@@ -25,6 +27,10 @@ def predict():
     
     file = request.files['image']
     image_bytes = file.read()
+    
+    # Reject uploads larger than 10MB to protect server memory
+    if len(image_bytes) > 10 * 1024 * 1024:
+        return jsonify({"success": False, "error": "Image is too large. Maximum 10MB."}), 413
     
     # Send image to AI Pipeline Facade
     result = pipeline.process_plant_image(image_bytes)
@@ -117,7 +123,7 @@ def schemes():
     try:
         llm_response = pipeline.llm_engine.generate_advice(prompt)
 
-        import re, json as json_mod
+        # re and json_mod are imported at the top of the file
         match = re.search(r'\[.*\]', llm_response, re.DOTALL)
         if match:
             schemes_list = json_mod.loads(match.group(0))
@@ -141,11 +147,11 @@ def get_weather():
     try:
         # Fetch current weather
         current_url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={api_key}&units=metric"
-        current_res = requests.get(current_url).json()
+        current_res = requests.get(current_url, timeout=10).json()
         
         # Fetch 5-day forecast
         forecast_url = f"https://api.openweathermap.org/data/2.5/forecast?lat={lat}&lon={lon}&appid={api_key}&units=metric"
-        forecast_res = requests.get(forecast_url).json()
+        forecast_res = requests.get(forecast_url, timeout=10).json()
 
         # Check for API errors
         if current_res.get('cod') != 200:
@@ -192,7 +198,7 @@ def mandi_prices():
     )
 
     try:
-        import re, json as json_mod
+        # re and json_mod are imported at the top of the file
         llm_response = pipeline.llm_engine.generate_advice(prompt)
         match = re.search(r'\{.*\}', llm_response, re.DOTALL)
         if match:

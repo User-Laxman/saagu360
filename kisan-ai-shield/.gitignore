@@ -47,3 +47,6 @@ ai_state_summary.md
 
 # Testing
 ai-backend/testing/
+test_voice.wav
+test_voice_endpoint.py
+temp_check_balance.py

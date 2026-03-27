@@ -4,7 +4,7 @@ import {
   StyleSheet, SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, RADIUS, SHADOW } from '../constants/appTheme';
+import { COLORS, FONTS, RADIUS, SHADOW, SPACING } from '../constants/appTheme';
 import { shared } from '../constants/sharedStyles';
 import { LanguageContext } from '../context/LanguageContext';
 import { getLocalPrices, fetchMandiPricesFromAI } from '../services/mandiService';
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
   pageSub:   shared.pageSub,
   liveRow:   { flexDirection: 'row', alignItems: 'center', gap: 6 },
   liveDot:   { width: 7, height: 7, borderRadius: 4, backgroundColor: '#A5D6A7' },
-  liveText:  { color: '#fff', fontSize: 10, fontWeight: '600' },
+  liveText:  { color: '#fff', fontSize: 11, fontFamily: FONTS.bodySemi },
 
   content: shared.content,
 
@@ -173,32 +173,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: COLORS.green50,
     borderWidth: 2, borderColor: COLORS.green200,
-    borderRadius: RADIUS.lg, padding: 12, marginBottom: 12,
+    borderRadius: RADIUS.lg, padding: SPACING.md, marginBottom: SPACING.md,
   },
-  sellTitle:  { fontSize: 12, fontWeight: '700', color: COLORS.green800 },
-  sellDesc:   { fontSize: 10, color: COLORS.green600, fontWeight: '500', marginTop: 2 },
-  sellArrow:  { fontSize: 18, color: COLORS.green600, fontWeight: '700' },
+  sellTitle:  { fontSize: 13, fontFamily: FONTS.bodyBold, color: COLORS.green800 },
+  sellDesc:   { fontSize: 11, color: COLORS.green800, fontFamily: FONTS.bodyMed, marginTop: 2 },
+  sellArrow:  { fontSize: 18, color: COLORS.green600, fontFamily: FONTS.bodyBold },
 
   searchBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
+    flexDirection: 'row', alignItems: 'center', gap: SPACING.sm,
     backgroundColor: COLORS.white, borderRadius: RADIUS.md,
     padding: 10, marginBottom: 14,
     borderWidth: 1.5, borderColor: COLORS.gray100, ...SHADOW.card,
   },
-  searchInput: { flex: 1, fontSize: 12, color: COLORS.gray800, fontWeight: '500' },
+  searchInput: { flex: 1, fontSize: 13, color: COLORS.gray800, fontFamily: FONTS.bodyMed },
 
   sectionTitle: shared.sectionTitle,
 
   table: {
     backgroundColor: COLORS.white, borderRadius: RADIUS.lg,
     overflow: 'hidden', ...SHADOW.card,
-    borderWidth: 1.5, borderColor: COLORS.gray100, marginBottom: 8,
+    borderWidth: 1.5, borderColor: COLORS.gray100, marginBottom: SPACING.sm,
   },
   tableHeader: {
     flexDirection: 'row', backgroundColor: COLORS.green900,
     paddingHorizontal: 14, paddingVertical: 10,
   },
-  colHead: { fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.85)' },
+  colHead: { fontSize: 10, fontFamily: FONTS.bodyBold, color: 'rgba(255,255,255,0.85)' },
   tableRow: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 14, paddingVertical: 11,
@@ -206,21 +206,21 @@ const styles = StyleSheet.create({
   },
   tableRowAlt: { backgroundColor: COLORS.green50 },
   cropCell:    { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  cropName:    { fontSize: 11, fontWeight: '700', color: COLORS.gray800 },
-  priceCell:   { fontSize: 12, fontWeight: '800', color: COLORS.gray800 },
+  cropName:    { fontSize: 12, fontFamily: FONTS.bodyBold, color: COLORS.gray800 },
+  priceCell:   { fontSize: 13, fontFamily: FONTS.headingXl, color: COLORS.gray800 },
   changeBadge: { paddingHorizontal: 6, paddingVertical: 3, borderRadius: 20 },
   changeUp:    { backgroundColor: COLORS.green100 },
   changeDn:    { backgroundColor: COLORS.redBg },
-  changeText:  { fontSize: 9.5, fontWeight: '700' },
-  emptyRow:    { padding: 20, alignItems: 'center' },
-  emptyText:   { fontSize: 12, color: COLORS.gray600, fontStyle: 'italic' },
+  changeText:  { fontSize: 11, fontFamily: FONTS.bodyBold },
+  emptyRow:    { padding: SPACING.xl, alignItems: 'center' },
+  emptyText:   { fontSize: 13, color: COLORS.gray800, fontStyle: 'italic', fontFamily: FONTS.body },
 
   mandiChip: {
     backgroundColor: COLORS.white, borderRadius: 20,
-    paddingHorizontal: 14, paddingVertical: 8,
+    paddingHorizontal: 14, paddingVertical: 10,
     marginRight: 8, borderWidth: 1.5, borderColor: COLORS.gray100,
   },
   mandiChipActive: { backgroundColor: COLORS.green800, borderColor: COLORS.green800 },
-  mandiName:       { fontSize: 11, fontWeight: '600', color: COLORS.gray600 },
+  mandiName:       { fontSize: 12, fontFamily: FONTS.bodySemi, color: COLORS.gray600 },
   mandiNameActive: { color: '#fff' },
 });

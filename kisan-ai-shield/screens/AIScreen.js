@@ -1,4 +1,4 @@
-import React, { useState, useRef, useContext } from "react";
+import React, { useState, useRef, useContext, useEffect, useCallback } from "react";
 import {
     View,
     Text,
@@ -7,17 +7,54 @@ import {
     FlatList,
     KeyboardAvoidingView,
     Platform,
-    ActivityIndicator,
+    Animated,
     StyleSheet,
     SafeAreaView,
 } from "react-native";
+import { COLORS, FONTS, RADIUS, SHADOW, SPACING } from "../constants/appTheme";
 import { shared } from "../constants/sharedStyles";
 import { getAIResponse, sendVoiceQuery } from "../services/aiService";
 import { speakText } from "../utils/speech";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import * as Speech from 'expo-speech';
 import { Audio } from 'expo-av';
 import { LanguageContext } from "../context/LanguageContext";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Animated typing dots component
+function TypingDots() {
+    const dot1 = useRef(new Animated.Value(0)).current;
+    const dot2 = useRef(new Animated.Value(0)).current;
+    const dot3 = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        const animate = (dot, delay) =>
+            Animated.loop(
+                Animated.sequence([
+                    Animated.delay(delay),
+                    Animated.timing(dot, { toValue: -6, duration: 300, useNativeDriver: true }),
+                    Animated.timing(dot, { toValue: 0, duration: 300, useNativeDriver: true }),
+                ])
+            ).start();
+        animate(dot1, 0);
+        animate(dot2, 150);
+        animate(dot3, 300);
+    }, []);
+
+    return (
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.lg, paddingBottom: 6, gap: 4 }}>
+            {[dot1, dot2, dot3].map((dot, i) => (
+                <Animated.View key={i} style={{
+                    width: 8, height: 8, borderRadius: 4,
+                    backgroundColor: COLORS.green600,
+                    transform: [{ translateY: dot }],
+                }} />
+            ))}
+            <Text style={{ marginLeft: 8, color: COLORS.gray600, fontSize: 13, fontFamily: FONTS.bodyMed }}>
+                AI is thinking...
+            </Text>
+        </View>
+    );
+}
 
 export default function AIScreen() {
     const { t, language } = useContext(LanguageContext);
@@ -33,6 +70,27 @@ export default function AIScreen() {
     ]);
     const [isLoading, setIsLoading] = useState(false);
     const flatListRef = useRef(null);
+
+    // Load persisted chat on mount
+    useEffect(() => {
+        AsyncStorage.getItem('kisan_chat_history').then(saved => {
+            if (saved) {
+                try { setMessages(JSON.parse(saved)); } catch(e) {}
+            }
+        });
+    }, []);
+
+    // Save chat on every new message
+    const saveMessages = useCallback((msgs) => {
+        setMessages(msgs);
+        AsyncStorage.setItem('kisan_chat_history', JSON.stringify(msgs.slice(-50))); // Keep last 50
+    }, []);
+
+    const clearChat = () => {
+        const welcome = [{ id: "welcome", role: "bot", text: t("aiWelcomeMessage") }];
+        setMessages(welcome);
+        AsyncStorage.removeItem('kisan_chat_history');
+    };
 
     const startRecording = async () => {
         try {
@@ -74,11 +132,19 @@ export default function AIScreen() {
 
             if (aiResponse.error) {
                 const errMsg = { id: Date.now().toString(), role: "bot", text: aiResponse.error };
-                setMessages((prev) => [...prev, errMsg]);
+                setMessages((prev) => {
+                    const updated = [...prev, errMsg];
+                    AsyncStorage.setItem('kisan_chat_history', JSON.stringify(updated.slice(-50)));
+                    return updated;
+                });
             } else {
                 const userMsg = { id: Date.now().toString() + "u", role: "user", text: aiResponse.text || "Voice audio" };
                 const botMsg = { id: Date.now().toString() + "b", role: "bot", text: aiResponse.response };
-                setMessages((prev) => [...prev, userMsg, botMsg]);
+                setMessages((prev) => {
+                    const updated = [...prev, userMsg, botMsg];
+                    AsyncStorage.setItem('kisan_chat_history', JSON.stringify(updated.slice(-50)));
+                    return updated;
+                });
                 speakText(aiResponse.response);
             }
         } catch (error) {
@@ -99,7 +165,6 @@ export default function AIScreen() {
         setIsLoading(true);
 
         try {
-            // getAIResponse returns a simple string, not an object
             const aiText = await getAIResponse(trimmed, language);
 
             const botMsg = {
@@ -107,7 +172,11 @@ export default function AIScreen() {
                 role: "bot",
                 text: aiText,
             };
-            setMessages((prev) => [...prev, botMsg]);
+            setMessages((prev) => {
+                const updated = [...prev, botMsg];
+                AsyncStorage.setItem('kisan_chat_history', JSON.stringify(updated.slice(-50)));
+                return updated;
+            });
         } catch (err) {
             const errMsg = {
                 id: (Date.now() + 2).toString(),
@@ -120,6 +189,7 @@ export default function AIScreen() {
         }
     };
 
+    // Animated message renderer
     const renderMessage = ({ item }) => {
         const isBot = item.role === "bot";
         return (
@@ -133,7 +203,7 @@ export default function AIScreen() {
                     <MaterialCommunityIcons
                         name="robot"
                         size={18}
-                        color="#2e7d32"
+                        color={COLORS.green800}
                         style={{ marginRight: 6 }}
                     />
                 )}
@@ -145,7 +215,7 @@ export default function AIScreen() {
                         onPress={() => speakText(item.text)}
                         style={styles.speakerBtn}
                     >
-                        <MaterialCommunityIcons name="volume-high" size={18} color="#2e7d32" />
+                        <MaterialCommunityIcons name="volume-high" size={18} color={COLORS.green800} />
                     </TouchableOpacity>
                 )}
             </View>
@@ -162,6 +232,10 @@ export default function AIScreen() {
             {/* HEADER */}
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>{t('askAiTitle')}</Text>
+                <TouchableOpacity onPress={clearChat} style={styles.clearBtn}>
+                    <MaterialCommunityIcons name="broom" size={18} color="#fff" />
+                    <Text style={styles.clearBtnText}>{t('clearChat')}</Text>
+                </TouchableOpacity>
             </View>
 
             <FlatList
@@ -175,17 +249,12 @@ export default function AIScreen() {
                 }
             />
 
-            {isLoading && (
-                <View style={styles.loadingRow}>
-                    <ActivityIndicator size="small" color="#2e7d32" />
-                    <Text style={styles.loadingText}>{t("aiThinking")}</Text>
-                </View>
-            )}
+            {isLoading && <TypingDots />}
 
             <View style={styles.inputRow}>
                 <TextInput
                     placeholder={t("aiInputPlaceholder")}
-                    placeholderTextColor="#999"
+                    placeholderTextColor={COLORS.gray400}
                     value={input}
                     onChangeText={setInput}
                     style={styles.textInput}
@@ -196,14 +265,14 @@ export default function AIScreen() {
 
                 {isRecording ? (
                     <TouchableOpacity
-                        style={[styles.sendBtn, { backgroundColor: '#d32f2f' }]}
+                        style={[styles.sendBtn, { backgroundColor: COLORS.red }]}
                         onPress={stopRecording}
                     >
                         <MaterialCommunityIcons name="stop" size={22} color="#fff" />
                     </TouchableOpacity>
                 ) : (
                     <TouchableOpacity
-                        style={[styles.sendBtn, { backgroundColor: '#388e3c', marginRight: 4 }]}
+                        style={[styles.sendBtn, { backgroundColor: COLORS.green600, marginRight: 4 }]}
                         onPress={startRecording}
                         disabled={isLoading}
                     >
@@ -227,92 +296,95 @@ export default function AIScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#f5f5f0",
+        backgroundColor: COLORS.green50,
     },
     header: {
-        backgroundColor: "#2e7d32",
-        padding: 16,
-        paddingBottom: 20,
-        borderBottomLeftRadius: 20,
-        borderBottomRightRadius: 20,
+        backgroundColor: COLORS.green800,
+        padding: SPACING.lg,
+        paddingBottom: SPACING.xl,
+        borderBottomLeftRadius: RADIUS.xl,
+        borderBottomRightRadius: RADIUS.xl,
+        flexDirection: "row",
+        justifyContent: "space-between",
         alignItems: "center",
-        elevation: 4,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        ...SHADOW.elevated,
     },
     headerTitle: {
         color: "#fff",
-        fontSize: 22,
-        fontWeight: "800",
+        fontSize: 23,
+        fontFamily: FONTS.headingXl,
     },
     chatArea: {
-        padding: 12,
-        paddingBottom: 8,
+        padding: SPACING.md,
+        paddingBottom: SPACING.sm,
+    },
+    clearBtn: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "rgba(255,255,255,0.2)",
+        borderRadius: RADIUS.lg,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        gap: 4,
+    },
+    clearBtnText: {
+        color: "#fff",
+        fontSize: 12,
+        fontFamily: FONTS.bodyBold,
     },
     bubble: {
         flexDirection: "row",
         alignItems: "flex-start",
         maxWidth: "85%",
-        padding: 12,
-        borderRadius: 16,
+        padding: SPACING.md,
+        borderRadius: RADIUS.lg,
         marginBottom: 10,
     },
     botBubble: {
         alignSelf: "flex-start",
-        backgroundColor: "#e8f5e9",
+        backgroundColor: COLORS.green100,
         borderTopLeftRadius: 4,
     },
     userBubble: {
         alignSelf: "flex-end",
-        backgroundColor: "#2e7d32",
+        backgroundColor: COLORS.green800,
         borderTopRightRadius: 4,
     },
     bubbleText: {
-        fontSize: 15,
-        lineHeight: 22,
+        fontSize: 16,
+        lineHeight: 24,
         flex: 1,
+        fontFamily: FONTS.body,
     },
     botText: {
-        color: "#1b1b1b",
+        color: COLORS.gray800,
     },
     userText: {
         color: "#ffffff",
-    },
-    loadingRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: 16,
-        paddingBottom: 6,
-    },
-    loadingText: {
-        marginLeft: 8,
-        color: "#666",
-        fontSize: 13,
     },
     inputRow: {
         flexDirection: "row",
         alignItems: "flex-end",
         padding: 10,
         paddingBottom: Platform.OS === "ios" ? 28 : 10,
-        backgroundColor: "#fff",
+        backgroundColor: COLORS.white,
         borderTopWidth: 1,
-        borderTopColor: "#e0e0e0",
+        borderTopColor: COLORS.gray100,
     },
     textInput: {
         flex: 1,
-        backgroundColor: "#f0f0f0",
+        backgroundColor: COLORS.gray100,
         borderRadius: 20,
-        paddingHorizontal: 16,
+        paddingHorizontal: SPACING.lg,
         paddingVertical: 10,
         fontSize: 15,
         maxHeight: 100,
-        color: "#333",
+        color: COLORS.gray800,
+        fontFamily: FONTS.body,
     },
     sendBtn: {
-        marginLeft: 8,
-        backgroundColor: "#2e7d32",
+        marginLeft: SPACING.sm,
+        backgroundColor: COLORS.green800,
         borderRadius: 22,
         width: 44,
         height: 44,

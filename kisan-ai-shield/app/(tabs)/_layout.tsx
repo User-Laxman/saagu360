@@ -1,14 +1,14 @@
 import { Tabs } from 'expo-router';
 import { View, Text, StyleSheet } from 'react-native';
 import { useContext } from 'react';
-import { COLORS, SHADOW } from '../../constants/appTheme';
+import { COLORS, FONTS, SHADOW } from '../../constants/appTheme';
 import { LanguageContext } from '../../context/LanguageContext';
 
 function TabIcon({ emoji, label, focused }: { emoji: string; label: string; focused: boolean }) {
   return (
     <View style={styles.tabItem}>
       <Text style={styles.tabEmoji}>{emoji}</Text>
-      <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>
+      <Text style={[styles.tabLabel, focused && styles.tabLabelActive]} numberOfLines={1}>
         {label}
       </Text>
     </View>
@@ -84,13 +84,15 @@ const styles = StyleSheet.create({
   tabItem: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: 3,
+    width: 58,
   },
   tabEmoji: { fontSize: 22 },
   tabLabel: {
-    fontSize: 9.5,
-    fontWeight: '500',
+    fontSize: 9,
+    fontFamily: FONTS.bodyMed,
     color: COLORS.gray600,
+    textAlign: 'center',
   },
-  tabLabelActive: { color: COLORS.green800, fontWeight: '700' },
+  tabLabelActive: { color: COLORS.green800, fontFamily: FONTS.bodyBold },
 });

@@ -20,9 +20,10 @@ const getBaseUrl = () => {
         console.warn("Could not automatically resolve Expo host URL.", e);
     }
 
-    // Absolute fallback: Since we pulled "10.98.63.238" from `ipconfig` during this session, 
-    // we set it as the ultimate failsafe instead of an emulator localhost.
-    return 'http://10.98.63.238:5000';
+    // Platform-aware fallback: Android emulator → 10.0.2.2, iOS/Web → localhost
+    const fallbackHost = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
+    return `http://${fallbackHost}:5000`;
 };
 
 export const BASE_URL = getBaseUrl();
+console.log('[apiConfig] Resolved BASE_URL:', BASE_URL);
