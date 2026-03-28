@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   resultTop: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 12 },
   resultImg: { width: 56, height: 56, borderRadius: 14, backgroundColor: COLORS.green100, alignItems: 'center', justifyContent: 'center' },
   resultName: { fontFamily: FONTS.sansBold, fontSize: 15, color: COLORS.gray800 },
-  resultConf: { fontFamily: FONTS.sans, fontSize: 12, color: COLORS.green700, marginTop: 2 },
+  resultConf: { fontFamily: FONTS.sans, fontSize: 12, color: COLORS.green800, marginTop: 2 },
   severityBadge: { backgroundColor: COLORS.redBg, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, alignSelf: 'flex-start', marginTop: 6 },
   severityText: { fontFamily: FONTS.sansBold, fontSize: 10, color: COLORS.red },
   divider: { height: 1, backgroundColor: COLORS.gray100, marginVertical: 12 },

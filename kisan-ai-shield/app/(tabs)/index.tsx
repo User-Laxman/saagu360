@@ -71,11 +71,11 @@ export default function DashboardScreen() {
   }, []);
 
   const rainHigh  = (weatherData?.rain ?? 0) > 50;
-  const cropChips = marketData?.crops?.slice(0, 4).map((c: any) => ({
-    emoji: c.name === 'Wheat' ? '🌾' : c.name === 'Rice' ? '🌾' : c.name === 'Tomato' ? '🍅' : c.name === 'Onion' ? '🧅' : '🌽',
-    name:  c.name,
-    price: c.currentPrice,
-    trend: c.trend,
+  const cropChips = marketData?.data?.slice(0, 4).map((c: any) => ({
+    emoji: c.displayName === 'Wheat' ? '🌾' : c.displayName === 'Rice' ? '🌾' : c.displayName === 'Tomato' ? '🍅' : c.displayName === 'Onion' ? '🧅' : '🌽',
+    name:  c.displayName,
+    price: c.modalPricePerKg,
+    trend: c.trend?.toLowerCase() || 'stable',
   })) ?? [];
 
   if (loading) {
@@ -171,7 +171,7 @@ export default function DashboardScreen() {
                     <View>
                       <Text style={[styles.cropName, activeCrop === i && styles.cropNameActive]}>{c.name}</Text>
                       <Text style={[styles.cropPrice, activeCrop === i && { color: COLORS.green200 }]}>
-                        ₹{c.price}  {c.trend === 'up' ? '▲' : '▼'}
+                        ₹{c.price?.toFixed(2)}  {c.trend === 'up' ? '▲' : c.trend === 'down' ? '▼' : '●'}
                       </Text>
                     </View>
                   </TouchableOpacity>

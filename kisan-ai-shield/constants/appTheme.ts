@@ -17,6 +17,7 @@ export const COLORS = {
   purpleBg: '#F3E5F5',
   white:    '#FFFFFF',
   gray800:  '#2D3748', // Main text 
+  gray700:  '#4A5568', // Medium text
   gray600:  '#718096', // Subtext
   gray300:  '#E2E8F0', // Borders
   gray100:  '#F7FAFC', // Offwhite
