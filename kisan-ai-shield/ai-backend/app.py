@@ -33,7 +33,8 @@ def predict():
         return jsonify({"success": False, "error": "Image is too large. Maximum 10MB."}), 413
     
     # Send image to AI Pipeline Facade
-    result = pipeline.process_plant_image(image_bytes)
+    language = request.form.get('language', 'en')
+    result = pipeline.process_plant_image(image_bytes, language=language)
     return jsonify(result)
 
 @app.route('/chat', methods=['POST'])
@@ -107,6 +108,10 @@ def schemes():
     crop = data.get('crop', 'General')
     category = data.get('category', 'General')
     irrigation = data.get('irrigation', 'Unknown')
+    language = data.get('language', 'en')
+    
+    lang_map = {'te': 'Telugu', 'hi': 'Hindi', 'en': 'English'}
+    target_lang_name = lang_map.get(language, 'English')
 
     prompt = (
         f"You are an expert Indian agriculture policy advisor. "
@@ -117,6 +122,7 @@ def schemes():
         f"this farmer is eligible for as of 2026. "
         f"For EACH scheme, respond in this EXACT JSON array format and nothing else:\n"
         f'[{{"name":"...","ministry":"...","benefit":"...","amount":"...","desc":"..."}}]\n\n'
+        f"All JSON string values MUST be translated natively into {target_lang_name} language. "
         f"Only return the JSON array. No markdown, no explanation."
     )
 
@@ -162,6 +168,42 @@ def get_weather():
             "current": current_res,
             "forecast": forecast_res
         })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/translate-json', methods=['POST'])
+def translate_json():
+    try:
+        data = request.json
+        payload = data.get('payload', [])
+        language = data.get('language', 'en')
+        
+        if language == 'en':
+            return jsonify({"success": True, "translated": payload})
+            
+        lang_map = {'te': 'Telugu', 'hi': 'Hindi', 'en': 'English'}
+        target_lang = lang_map.get(language, 'English')
+        
+        prompt = (
+             f"You are an agricultural translator. Translate all human-readable string values of the following JSON array into {target_lang}. "
+             f"Translate crop names, scheme names, descriptions, eligibility, etc. "
+             f"Keep all JSON keys EXACTLY exactly as they are in English. DO NOT translate keys. "
+             f"Keep numbers, ids, urls, and emojis intact. "
+             f"Return ONLY the valid JSON array. No markdown, no prefixes.\n\n"
+             f"{json_mod.dumps(payload)}"
+        )
+        
+        translated_text = pipeline.llm_engine.generate_advice(prompt)
+        
+        # Clean up markdown output
+        start_idx = translated_text.find('[')
+        end_idx = translated_text.rfind(']') + 1
+        if start_idx != -1 and end_idx != -1:
+            clean_json = translated_text[start_idx:end_idx]
+            result = json_mod.loads(clean_json)
+            return jsonify({"success": True, "translated": result})
+            
+        return jsonify({"success": False, "error": "Failed to parse json"}), 500
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 

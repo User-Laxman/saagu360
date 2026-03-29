@@ -7,13 +7,15 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, SafeAreaView, ActivityIndicator, Alert, RefreshControl,
+  StyleSheet, SafeAreaView, ActivityIndicator, Alert, RefreshControl, Modal,
 } from 'react-native';
 import { COLORS, FONTS, RADIUS, SHADOW, SPACING } from '../constants/appTheme';
 import { shared } from '../constants/sharedStyles';
 import { LanguageContext } from '../context/LanguageContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { fetchSchemes, fetchEligibleSchemes, MASTER_SCHEMES } from '../services/schemeService';
+import { fetchSchemes } from '../services/schemeService';
+import { translateJson } from '../services/aiService';
+import { fetchEligibleSchemes } from '../services/aiService';
 import EligibilityModal from '../components/EligibilityModal';
 
 // ── Constants ─────────────────────────────────────────────────────
@@ -34,8 +36,8 @@ export default function SchemesScreen() {
   const { t, language } = useContext(LanguageContext);
 
   // ── Browse mode state ─────────────────────────────────────────
-  const [allSchemes, setAllSchemes]   = useState(MASTER_SCHEMES); // instant load
-  const [filtered, setFiltered]       = useState(MASTER_SCHEMES);
+  const [allSchemes, setAllSchemes]   = useState([]);
+  const [filtered, setFiltered]       = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
   const [loadingSchemes, setLoadingSchemes] = useState(false);
@@ -82,13 +84,51 @@ export default function SchemesScreen() {
     if (allSchemes.length === 0) setLoadingSchemes(true);
     const { data, source } = await fetchSchemes(30, force);
     setAllSchemes(data);
-    applyFilters(data, searchQuery, activeFilter);
     setDataSource(source);
     setLoadingSchemes(false);
     setRefreshing(false);
-  }, [searchQuery, activeFilter]);
+  }, [allSchemes.length]);
 
   useEffect(() => { loadSchemes(); }, []);
+
+  // ── Translate Core Data on language toggle ───────────────────────
+  useEffect(() => {
+    if (allSchemes.length === 0) return;
+    if (language === 'en') {
+       applyFilters(allSchemes, searchQuery, activeFilter);
+       return;
+    }
+    
+    const doTranslate = async () => {
+        const payload = allSchemes.map(s => ({
+            id: s.id, schemeName: s.schemeName, fullTitle: s.fullTitle,
+            category: s.category, tagline: s.tagline, description: s.description,
+            benefits: s.benefits, eligibilityCriteria: s.eligibilityCriteria,
+            applicationProcess: s.applicationProcess, state: s.state
+        }));
+        
+        const txPayload = await translateJson(payload, language);
+        
+        const localized = allSchemes.map(s => {
+            const tx = txPayload.find(t => t.id === s.id) || s;
+            return {
+                ...s,
+                schemeName: tx.schemeName || s.schemeName,
+                fullTitle: tx.fullTitle || s.fullTitle,
+                category: tx.category || s.category,
+                tagline: tx.tagline || s.tagline,
+                description: tx.description || s.description,
+                benefits: tx.benefits || s.benefits,
+                eligibilityCriteria: tx.eligibilityCriteria || s.eligibilityCriteria,
+                applicationProcess: tx.applicationProcess || s.applicationProcess,
+                state: tx.state || s.state
+            };
+        });
+        
+        applyFilters(localized, searchQuery, activeFilter);
+    };
+    doTranslate();
+  }, [allSchemes, language, searchQuery, activeFilter]);
 
   const onRefresh = () => { setRefreshing(true); loadSchemes(true); };
 
@@ -228,50 +268,60 @@ export default function SchemesScreen() {
           </View>
         </View>
 
-        {/* ── AI BULK FORM ── */}
-        {showForm && (
-          <View style={styles.formCard}>
-            <Text style={styles.formTitle}>🤖 AI Eligibility Check</Text>
-            <Text style={styles.formDesc}>Enter your details to find ALL schemes you qualify for via AI</Text>
-
-            <View style={styles.fieldBlock}>
-              <Text style={styles.fieldLabel}>Full Name *</Text>
-              <TextInput style={styles.textInput} placeholder="e.g. Ravi Kumar"
-                placeholderTextColor={COLORS.gray300} value={name} onChangeText={setName} />
-            </View>
-
-            <ChipSelector label="State *" options={STATES} selected={state} onSelect={setState} />
-            <View style={styles.fieldBlock}>
-              <Text style={styles.fieldLabel}>Land Size (acres) *</Text>
-              <TextInput style={styles.textInput} placeholder="e.g. 2.5" keyboardType="numeric"
-                placeholderTextColor={COLORS.gray300} value={landAcres} onChangeText={setLandAcres} />
-            </View>
-            <ChipSelector label="Primary Crop *" options={CROPS} selected={crop} onSelect={setCrop} />
-            <ChipSelector label="Category *" options={CATEGORIES} selected={category} onSelect={setCategory} />
-
-            <TouchableOpacity style={styles.submitBtn} onPress={handleBulkSubmit} disabled={isSubmitting}>
-              {isSubmitting
-                ? <ActivityIndicator size="small" color="#fff" />
-                : <Text style={styles.submitBtnText}>{t('findEligible') || 'Find Eligible Schemes →'}</Text>
-              }
-            </TouchableOpacity>
-            {formError && <Text style={styles.errorText}>{formError}</Text>}
-
-            {/* AI Results */}
-            {eligibleSchemes.length > 0 && (
-              <View style={{ marginTop: 16 }}>
-                <Text style={styles.aiResultTitle}>✅ {eligibleSchemes.length} schemes found by AI</Text>
-                {eligibleSchemes.map((s, i) => (
-                  <View key={i} style={styles.aiResultCard}>
-                    <Text style={styles.aiResultName}>{s.name}</Text>
-                    {s.benefit && <Text style={styles.aiResultBenefit}>{s.benefit}</Text>}
-                    {s.desc && <Text style={styles.aiResultDesc}>{s.desc}</Text>}
-                  </View>
-                ))}
+        {/* ── AI BULK FORM MODAL ── */}
+        <Modal visible={showForm} animationType="slide" transparent={true} onRequestClose={() => setShowForm(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4}}>
+                <Text style={styles.formTitle}>🤖 AI Eligibility Check</Text>
+                <TouchableOpacity onPress={() => setShowForm(false)} style={{padding: 4}}>
+                   <Text style={{fontSize: 20, color: COLORS.gray600}}>✕</Text>
+                </TouchableOpacity>
               </View>
-            )}
+              <Text style={styles.formDesc}>Enter your details to find ALL schemes you qualify for via AI</Text>
+
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <View style={styles.fieldBlock}>
+                  <Text style={styles.fieldLabel}>Full Name *</Text>
+                  <TextInput style={styles.textInput} placeholder="e.g. Ravi Kumar"
+                    placeholderTextColor={COLORS.gray300} value={name} onChangeText={setName} />
+                </View>
+
+                <ChipSelector label="State *" options={STATES} selected={state} onSelect={setState} />
+                <View style={styles.fieldBlock}>
+                  <Text style={styles.fieldLabel}>Land Size (acres) *</Text>
+                  <TextInput style={styles.textInput} placeholder="e.g. 2.5" keyboardType="numeric"
+                    placeholderTextColor={COLORS.gray300} value={landAcres} onChangeText={setLandAcres} />
+                </View>
+                <ChipSelector label="Primary Crop *" options={CROPS} selected={crop} onSelect={setCrop} />
+                <ChipSelector label="Category *" options={CATEGORIES} selected={category} onSelect={setCategory} />
+
+                <TouchableOpacity style={styles.submitBtn} onPress={handleBulkSubmit} disabled={isSubmitting}>
+                  {isSubmitting
+                    ? <ActivityIndicator size="small" color="#fff" />
+                    : <Text style={styles.submitBtnText}>{t('findEligible') || 'Find Eligible Schemes →'}</Text>
+                  }
+                </TouchableOpacity>
+                {formError && <Text style={styles.errorText}>{formError}</Text>}
+
+                {/* AI Results */}
+                {eligibleSchemes.length > 0 && (
+                  <View style={{ marginTop: 16 }}>
+                    <Text style={styles.aiResultTitle}>✅ {eligibleSchemes.length} schemes found by AI</Text>
+                    {eligibleSchemes.map((s, i) => (
+                      <View key={i} style={styles.aiResultCard}>
+                        <Text style={styles.aiResultName}>{s.name}</Text>
+                        {s.benefit && <Text style={styles.aiResultBenefit}>{s.benefit}</Text>}
+                        {s.desc && <Text style={styles.aiResultDesc}>{s.desc}</Text>}
+                      </View>
+                    ))}
+                  </View>
+                )}
+                <View style={{height: 40}} />
+              </ScrollView>
+            </View>
           </View>
-        )}
+        </Modal>
 
         {/* ── LOADING ── */}
         {loadingSchemes && !refreshing && (
@@ -376,15 +426,18 @@ const styles = StyleSheet.create({
   sourceCached: { backgroundColor: '#F0F3F6' },
   sourceText: { fontFamily: FONTS.bodyBold, fontSize: 9, color: '#444' },
 
-  // ── AI FORM ──
-  formCard: {
-    backgroundColor: COLORS.white, borderRadius: RADIUS.xl,
-    padding: 16, marginBottom: 16, ...SHADOW.card,
-    borderWidth: 1.5, borderColor: '#CE93D8',
+  // ── AI FORM MODAL ──
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
   },
-  formTitle: { fontSize: 16, fontFamily: FONTS.headingXl || FONTS.bodyBold, color: '#4A148C', marginBottom: 4 },
-  formDesc: { fontSize: 12, color: COLORS.gray600, fontFamily: FONTS.body, marginBottom: 12, lineHeight: 18 },
-  fieldBlock: { marginBottom: 12 },
+  modalContent: {
+    backgroundColor: COLORS.white, borderTopLeftRadius: RADIUS.xl, borderTopRightRadius: RADIUS.xl,
+    padding: 20, maxHeight: '85%', ...SHADOW.card,
+  },
+  formTitle: { fontSize: 18, fontFamily: FONTS.headingXl || FONTS.bodyBold, color: '#4A148C', marginBottom: 4 },
+  formDesc: { fontSize: 13, color: COLORS.gray600, fontFamily: FONTS.body, marginBottom: 16, lineHeight: 18 },
+  fieldBlock: { marginBottom: 14 },
   fieldLabel: { fontSize: 12, fontFamily: FONTS.bodyBold, color: COLORS.gray800, marginBottom: 6 },
   textInput: {
     backgroundColor: COLORS.gray100, borderRadius: RADIUS.sm,

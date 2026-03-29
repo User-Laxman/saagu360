@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import { COLORS, FONTS, RADIUS, SHADOW, SPACING } from '../constants/appTheme';
 import { shared } from '../constants/sharedStyles';
+import { fetchMandiPrices, FALLBACK_PRICES } from '../services/mandiService';
+import { translateJson } from '../services/aiService';
 import { LanguageContext } from '../context/LanguageContext';
 import LanguageSelector from '../components/LanguageSelector';
 import { getMarketPrices, searchCrops, getCropEmoji } from '../services/mandiService';
@@ -23,7 +25,7 @@ const SOURCE_LABELS = {
 };
 
 export default function MarketScreen() {
-  const { t } = useContext(LanguageContext);
+  const { t, language } = useContext(LanguageContext);
 
   const [allPrices, setAllPrices] = useState([]);
   const [displayPrices, setDisplayPrices] = useState([]);
@@ -34,25 +36,78 @@ export default function MarketScreen() {
   const [dataSource, setDataSource] = useState('');
   const [error, setError] = useState(null);
 
-  const loadPrices = useCallback(async (force = false) => {
-    if (!force) setIsLoading(true);
-    setError(null);
-    const { data, source, error: err } = await getMarketPrices(100, force);
-    setAllPrices(data);
-    setDisplayPrices(data);
-    setDataSource(source);
-    setLastUpdated(new Date());
-    if (err) setError(err);
-    setIsLoading(false);
-    setRefreshing(false);
+  // 1. Fetch raw underlying data in English
+  const loadPrices = useCallback(async (isRefresh = false) => {
+    try {
+      const data = await fetchMandiPrices();
+      if (data && data.length > 0) {
+        setAllPrices(data);
+        if (data[0].topMarket === 'Khammam') setDataSource('fallback');
+        else setDataSource('data.gov.in');
+        setLastUpdated(new Date());
+      } else {
+        setAllPrices(FALLBACK_PRICES);
+        setDataSource('fallback');
+        setLastUpdated(new Date());
+      }
+    } catch (e) {
+      setAllPrices(FALLBACK_PRICES);
+      setDataSource('fallback');
+      setLastUpdated(new Date());
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
+    }
   }, []);
 
   useEffect(() => {
     loadPrices();
-    // Auto-refresh every 30 minutes
     const interval = setInterval(() => loadPrices(true), 30 * 60 * 1000);
     return () => clearInterval(interval);
   }, [loadPrices]);
+
+  // 2. React to language context changes by translating the loaded English arrays dynamically
+  useEffect(() => {
+     if (allPrices.length === 0) return;
+     if (language === 'en') {
+       setDisplayPrices(search ? searchCrops(allPrices, search) : allPrices);
+       return;
+     }
+
+     const translateAndSet = async () => {
+         // Create a slim payload to keep JSON compact for LLM speed
+         const payload = allPrices.map(c => ({
+             id: c.id,
+             displayName: c.displayName,
+             state: c.state,
+             topMarket: c.topMarket,
+             trend: c.trend,
+             arrivalDate: c.arrivalDate
+         }));
+         
+         const txPayload = await translateJson(payload, language);
+         
+         // Reconstruct the full data object with translated strings retaining the math fields
+         const localized = allPrices.map(c => {
+             const translatedItem = txPayload.find(t => t.id === c.id) || c;
+             return {
+                 ...c,
+                 displayName: translatedItem.displayName || c.displayName,
+                 state: translatedItem.state || c.state,
+                 topMarket: translatedItem.topMarket || c.topMarket,
+                 trend: translatedItem.trend || c.trend,
+                 arrivalDate: translatedItem.arrivalDate || c.arrivalDate
+             };
+         });
+         
+         if (search) {
+             setDisplayPrices(searchCrops(localized, search));
+         } else {
+             setDisplayPrices(localized);
+         }
+     };
+     translateAndSet();
+  }, [allPrices, language, search]);
 
   const handleSearch = (text) => {
     setSearch(text);

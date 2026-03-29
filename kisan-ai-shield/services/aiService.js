@@ -32,8 +32,8 @@ export const sendVoiceQuery = async (audioUri, language = 'en', lat = null, lon 
         // Append audio file
         formData.append('audio', {
             uri: audioUri,
-            type: 'audio/m4a', // Default format for expo-av
-            name: 'voice_query.m4a',
+            type: 'audio/wav', // Adjusted to WAV natively
+            name: 'voice_query.wav',
         });
 
         formData.append('language', language);
@@ -62,18 +62,34 @@ export const sendVoiceQuery = async (audioUri, language = 'en', lat = null, lon 
     }
 };
 
-export const translateChat = async (texts, targetLang) => {
+export const translateChat = async (texts, language) => {
     try {
-        const response = await axios.post(`${BASE_URL}/translate`, { 
-            texts, 
-            target: targetLang 
+        const payload = { texts, language };
+        const response = await axios.post(`${BASE_URL}/translate`, payload, {
+            timeout: 15000,
         });
         if (response.data.success) {
-            return response.data.translations;
+            return response.data.translated_texts;
         }
-        return texts;
-    } catch (e) {
-        console.warn("Translation API failed:", e.message);
-        return texts;
+        return null;
+    } catch (error) {
+        console.error("Translation Error:", error.message);
+        return null;
+    }
+};
+
+export const translateJson = async (payload, language) => {
+    if (language === 'en') return payload;
+    try {
+        const response = await axios.post(`${BASE_URL}/translate-json`, { payload, language }, {
+            timeout: 20000, // LLMs take a few seconds
+        });
+        if (response.data.success) {
+            return response.data.translated;
+        }
+        return payload; // fallback
+    } catch (error) {
+        console.error("JSON Translation Error:", error.message);
+        return payload; // graceful degradation to English
     }
 };

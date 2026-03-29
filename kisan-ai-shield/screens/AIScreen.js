@@ -11,6 +11,7 @@ import {
     StyleSheet,
     SafeAreaView,
 } from "react-native";
+import { useLocalSearchParams } from "expo-router";
 import { COLORS, FONTS, RADIUS, SHADOW, SPACING } from "../constants/appTheme";
 import { shared } from "../constants/sharedStyles";
 import { getAIResponse, sendVoiceQuery, translateChat } from "../services/aiService";
@@ -58,6 +59,7 @@ function TypingDots() {
 }
 
 export default function AIScreen() {
+    const params = useLocalSearchParams();
     const { t, language } = useContext(LanguageContext);
     const [input, setInput] = useState("");
     const [recording, setRecording] = useState(null);
@@ -135,9 +137,28 @@ export default function AIScreen() {
                     playsInSilentModeIOS: true,
                 });
                 setIsRecording(true);
-                const { recording } = await Audio.Recording.createAsync(
-                    Audio.RecordingOptionsPresets.HIGH_QUALITY
-                );
+                const WAV_OPTIONS = {
+                    isMeteringEnabled: true,
+                    android: {
+                        extension: '.wav',
+                        outputFormat: Audio.AndroidOutputFormat.DEFAULT,
+                        audioEncoder: Audio.AndroidAudioEncoder.DEFAULT,
+                        sampleRate: 44100,
+                        numberOfChannels: 1,
+                        bitRate: 128000,
+                    },
+                    ios: {
+                        extension: '.wav',
+                        audioQuality: Audio.IOSAudioQuality.HIGH,
+                        sampleRate: 44100,
+                        numberOfChannels: 1,
+                        bitRate: 128000,
+                        linearPCMBitDepth: 16,
+                        linearPCMIsBigEndian: false,
+                        linearPCMIsFloat: false,
+                    },
+                };
+                const { recording } = await Audio.Recording.createAsync(WAV_OPTIONS);
                 setRecording(recording);
             } else {
                 alert(t('aiConnectionError') || "Microphone permission is required.");
@@ -189,38 +210,41 @@ export default function AIScreen() {
         }
     };
 
-    const handleSend = async () => {
-        const trimmed = input.trim();
+    // Auto-send query if passed from scanner
+    useEffect(() => {
+        if (params?.query) {
+            handleSendWithQuery(params.query);
+        }
+    }, [params?.query]);
+
+    const handleSendWithQuery = async (queryText) => {
+        const trimmed = queryText.trim();
         if (!trimmed || isLoading) return;
 
         const userMsg = { id: Date.now().toString(), role: "user", text: trimmed };
         setMessages((prev) => [...prev, userMsg]);
-        setInput("");
         setIsLoading(true);
 
         try {
             const aiText = await getAIResponse(trimmed, language);
-
-            const botMsg = {
-                id: (Date.now() + 1).toString(),
-                role: "bot",
-                text: aiText,
-            };
+            const botMsg = { id: (Date.now() + 1).toString(), role: "bot", text: aiText };
             setMessages((prev) => {
                 const updated = [...prev, botMsg];
                 AsyncStorage.setItem('kisan_chat_history', JSON.stringify(updated.slice(-50)));
                 return updated;
             });
         } catch (err) {
-            const errMsg = {
-                id: (Date.now() + 2).toString(),
-                role: "bot",
-                text: t("aiConnectionError"),
-            };
-            setMessages((prev) => [...prev, errMsg]);
+            setMessages((prev) => [...prev, { id: (Date.now() + 2).toString(), role: "bot", text: t("aiConnectionError") }]);
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleSend = async () => {
+        if (!input.trim() || isLoading) return;
+        const textToSend = input;
+        setInput(""); // Clear input immediately
+        await handleSendWithQuery(textToSend);
     };
 
     // Animated message renderer

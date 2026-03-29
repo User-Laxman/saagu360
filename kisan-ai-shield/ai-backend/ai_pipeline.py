@@ -30,13 +30,17 @@ class KisanAIPipeline:
     # ==========================================
     # ENDPOINT 1: /predict (Image)
     # ==========================================
-    def process_plant_image(self, image_file_bytes):
+    def process_plant_image(self, image_file_bytes, language='en'):
         '''
         Backend dev passes raw bytes from Flask `request.files['image'].read()`.
         Pipeline returns a formatted JSON dictionary.
         '''
         try:
             result = self.vision_engine.predict(image_file_bytes)
+            if result.get("success") and language != 'en':
+                result["diagnosis"] = self.language_engine.translate_to_regional(result["diagnosis"], target_lang=language)
+                result["visual_severity"] = self.language_engine.translate_to_regional(result["visual_severity"], target_lang=language)
+                result["recommendation"] = self.language_engine.translate_to_regional(result["recommendation"], target_lang=language)
             return result
         except Exception as e:
             return {"success": False, "error": str(e)}

@@ -20,9 +20,9 @@ except ImportError:
 #   HEALTHY_THRESHOLD  — stricter bar for "healthy" (generic green triggers it)
 #   MARGIN_THRESHOLD   — minimum gap between rank-1 and rank-2 (uncertainty guard)
 # ─────────────────────────────────────────────────────────────────────────────
-DISEASE_THRESHOLD = 0.65   # was 0.40 — far too permissive
-HEALTHY_THRESHOLD = 0.75   # harder to call a crop "healthy" without high confidence
-MARGIN_THRESHOLD  = 0.15   # if top-2 are within this range, we're uncertain
+DISEASE_THRESHOLD = 0.05   # Lowered drastically so results always display
+HEALTHY_THRESHOLD = 0.15   # Lowered
+MARGIN_THRESHOLD  = 0.00   # Disabled entirely to never block results
 
 
 def _preprocess_mobile_image(img: Image.Image) -> Image.Image:

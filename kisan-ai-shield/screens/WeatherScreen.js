@@ -1,4 +1,4 @@
-import React, { useContext, useEffect } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, ActivityIndicator
@@ -10,6 +10,7 @@ import { fetchWeather } from '../services/weatherService';
 import { useQuery } from '@tanstack/react-query';
 import { getIrrigationAdvice, getIrrigationCardConfig, rainProbabilityFromCode } from '../services/irrigationService';
 import { saveWeatherLog, saveIrrigationLog } from '../services/storageService';
+import { translateChat } from '../services/aiService';
 
 const getWeatherEmoji = (main) => {
     const map = {
@@ -20,7 +21,8 @@ const getWeatherEmoji = (main) => {
 
 
 export default function WeatherScreen() {
-  const { t } = useContext(LanguageContext);
+  const { t, language } = useContext(LanguageContext);
+  const [localizedAdvice, setLocalizedAdvice] = useState({ title: '', advice: 'Awaiting weather data...', reason: '' });
   const { data: weatherData, isLoading, isRefetching, refetch } = useQuery({
     queryKey: ['weather'],
     queryFn: async () => {
@@ -67,6 +69,31 @@ export default function WeatherScreen() {
     : { advice: 'Awaiting weather data...', urgency: 'low', reason: '' };
 
   const irrigCard = getIrrigationCardConfig(rain, currentWeather?.weather[0]?.main);
+
+  // Translate Irrigation Advice Whenever Language or Base Advice Changes
+  useEffect(() => {
+     if (!currentWeather) return;
+     if (language === 'en') {
+         setLocalizedAdvice({ title: irrigCard.title, advice: irrigAdvice.advice, reason: irrigAdvice.reason });
+         return;
+     }
+     
+     const translate = async () => {
+         try {
+             // Translate title, advice, and reason in one batch API call
+             const texts = [irrigCard.title, irrigAdvice.advice, irrigAdvice.reason];
+             const results = await translateChat(texts, language);
+             if (results && results.length === 3) {
+                 setLocalizedAdvice({ title: results[0], advice: results[1], reason: results[2] });
+             } else {
+                 setLocalizedAdvice({ title: irrigCard.title, advice: irrigAdvice.advice, reason: irrigAdvice.reason });
+             }
+         } catch(e) {
+             setLocalizedAdvice({ title: irrigCard.title, advice: irrigAdvice.advice, reason: irrigAdvice.reason });
+         }
+     }
+     translate();
+  }, [language, currentWeather?.dt]);
 
   // Log weather + irrigation advice to Firestore once per successful fetch
   useEffect(() => {
@@ -168,9 +195,9 @@ export default function WeatherScreen() {
               <Text style={{ fontSize: 24 }}>💧</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.alertTitle}>{irrigCard.title}</Text>
-              <Text style={styles.alertDesc}>{irrigAdvice.advice}</Text>
-              {irrigAdvice.reason ? <Text style={[styles.alertDesc, { marginTop: 4, opacity: 0.85 }]}>{irrigAdvice.reason}</Text> : null}
+              <Text style={styles.alertTitle}>{localizedAdvice.title || irrigCard.title}</Text>
+              <Text style={styles.alertDesc}>{localizedAdvice.advice}</Text>
+              {localizedAdvice.reason ? <Text style={[styles.alertDesc, { marginTop: 4, opacity: 0.85 }]}>{localizedAdvice.reason}</Text> : null}
             </View>
           </View>
 

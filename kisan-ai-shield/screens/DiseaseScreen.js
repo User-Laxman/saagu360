@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity, Image,
   StyleSheet, SafeAreaView, ActivityIndicator,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { predictDisease } from '../services/diseaseService';
 import { COLORS, FONTS, RADIUS, SHADOW, SPACING } from '../constants/appTheme';
@@ -12,6 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { saveDiseaseLog } from '../firebase/helpers';
 
 export default function DiseaseScreen() {
+  const router = useRouter();
   const { t, language } = useContext(LanguageContext);
   const [imageUri, setImageUri] = useState(null);
   const [result, setResult] = useState(null);
@@ -185,6 +187,16 @@ export default function DiseaseScreen() {
               <Text style={styles.remedyText}>
                 {parsedRecommend || 'Ask the AI chatbot for detailed treatment advice based on this diagnosis.'}
               </Text>
+              
+              <TouchableOpacity
+                style={[styles.rescanBtn, { backgroundColor: COLORS.green600, marginTop: 16 }]}
+                onPress={() => router.push({ 
+                  pathname: '/ask-ai', 
+                  params: { query: `I scanned my crop and your vision model detected: ${parsedDiagnosis || 'a disease'}. Can you give me a detailed 3-step treatment and precaution plan for it?` } 
+                })}
+              >
+                <Text style={styles.rescanText}>🤖 Ask AI About This Disease</Text>
+              </TouchableOpacity>
             </View>
           )}
 
