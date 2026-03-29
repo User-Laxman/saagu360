@@ -9,6 +9,7 @@ import { COLORS, FONTS, RADIUS, SHADOW, SPACING } from '../constants/appTheme';
 import { shared } from '../constants/sharedStyles';
 import { LanguageContext } from '../context/LanguageContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { saveDiseaseLog } from '../firebase/helpers';
 
 export default function DiseaseScreen() {
   const { t, language } = useContext(LanguageContext);
@@ -57,7 +58,7 @@ export default function DiseaseScreen() {
     try {
       const aiResult = await predictDisease(uri, language);
       setResult(aiResult);
-      // Add to history and persist
+      // Add to history and persist locally
       setScanHistory(prev => {
         const updated = [
           { result: aiResult, time: new Date().toLocaleTimeString(), uri: uri },
@@ -66,6 +67,17 @@ export default function DiseaseScreen() {
         AsyncStorage.setItem('kisan_scan_history', JSON.stringify(updated));
         return updated;
       });
+      // Also persist to Firestore (cloud backup)
+      if (aiResult?.success) {
+        saveDiseaseLog({
+          diagnosis:      aiResult.diagnosis,
+          confidence:     aiResult.confidence,
+          severity:       aiResult.severity,
+          recommendation: aiResult.recommendation,
+          isHealthy:      aiResult.is_healthy || false,
+          language,
+        }).catch(() => {}); // Silent — never block UI on logging failure
+      }
     } catch (e) {
       setResult({ success: false, error: 'Analysis failed. Please try again.' });
     } finally {
@@ -74,8 +86,12 @@ export default function DiseaseScreen() {
   };
 
   // Parse result object for display
-  const parsedDiagnosis = result?.success ? result.diagnosis : (result?.error || null);
-  const parsedConfidence = result?.success ? `${(result.confidence * 100).toFixed(1)}%` : null;
+  const parsedDiagnosis   = result?.success ? result.diagnosis : (result?.error || null);
+  const parsedConfidence  = result?.success && result.confidence != null
+    ? `${(result.confidence * 100).toFixed(1)}%`
+    : null;
+  const parsedSeverity    = result?.success ? (result.severity || 'Moderate') : null;
+  const parsedRecommend   = result?.success ? result.recommendation : null;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -144,9 +160,22 @@ export default function DiseaseScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.resultName}>{parsedDiagnosis || 'Analysis Complete'}</Text>
                   {parsedConfidence && <Text style={styles.resultConf}>{parsedConfidence} Confidence</Text>}
-                  <View style={styles.severityBadge}>
-                    <Text style={styles.severityText}>
-                      {parsedConfidence && parseFloat(parsedConfidence) > 85 ? '⚠ High Severity' : '✅ Moderate'}
+                  <View style={[
+                    styles.severityBadge,
+                    parsedSeverity === 'High' && { backgroundColor: COLORS.redBg },
+                    parsedSeverity === 'Moderate' && { backgroundColor: COLORS.amberBg },
+                    parsedSeverity === 'Unknown' && { backgroundColor: COLORS.gray100 },
+                  ]}>
+                    <Text style={[
+                      styles.severityText,
+                      parsedSeverity === 'High' && { color: COLORS.red },
+                      parsedSeverity === 'Moderate' && { color: COLORS.orange },
+                      parsedSeverity === 'Unknown' && { color: COLORS.gray600 },
+                    ]}>
+                      {parsedSeverity === 'High' ? '⚠ High Severity'
+                        : parsedSeverity === 'Moderate' ? '⚡ Moderate'
+                        : parsedSeverity === 'Low' ? '✅ Low Risk'
+                        : '❓ Unknown'}
                     </Text>
                   </View>
                 </View>
@@ -154,7 +183,7 @@ export default function DiseaseScreen() {
               <View style={styles.divider} />
               <Text style={styles.remedyTitle}>{t('nextStep')}</Text>
               <Text style={styles.remedyText}>
-                Ask the AI chatbot for detailed treatment advice based on this diagnosis.
+                {parsedRecommend || 'Ask the AI chatbot for detailed treatment advice based on this diagnosis.'}
               </Text>
             </View>
           )}

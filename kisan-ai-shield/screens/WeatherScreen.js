@@ -1,14 +1,15 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, SafeAreaView, ActivityIndicator
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, FONTS, RADIUS, SHADOW, SPACING } from '../constants/appTheme';
 import { shared } from '../constants/sharedStyles';
 import { LanguageContext } from '../context/LanguageContext';
 import { fetchWeather } from '../services/weatherService';
 import { useQuery } from '@tanstack/react-query';
+import { getIrrigationAdvice, getIrrigationCardConfig, rainProbabilityFromCode } from '../services/irrigationService';
+import { saveWeatherLog, saveIrrigationLog } from '../services/storageService';
 
 const getWeatherEmoji = (main) => {
     const map = {
@@ -17,21 +18,6 @@ const getWeatherEmoji = (main) => {
     return map[main] || '⛅';
 };
 
-const FORECAST = [
-  { day: 'Today', icon: '⛅', temp: '28°', today: true  },
-  { day: 'Wed',   icon: '🌧', temp: '24°', today: false },
-  { day: 'Thu',   icon: '🌦', temp: '26°', today: false },
-  { day: 'Fri',   icon: '☀',  temp: '32°', today: false },
-  { day: 'Sat',   icon: '☀',  temp: '33°', today: false },
-  { day: 'Sun',   icon: '⛅', temp: '29°', today: false },
-];
-
-const IRRIG_TIPS = [
-  '✅  Soil moisture is adequate (72%)',
-  '🌧  Rain expected tomorrow — skip today',
-  '⏰  Next irrigation: Thursday 5–7 AM',
-  '💡  Save ~40L water per crop row today',
-];
 
 export default function WeatherScreen() {
   const { t } = useContext(LanguageContext);
@@ -66,25 +52,61 @@ export default function WeatherScreen() {
   const currentWeather = weatherData?.current;
   const forecastList = weatherData?.forecastList || [];
 
-  const getIrrigationAdvice = (current) => {
-    if (!current) return { title: 'WAITING FOR METRICS', desc: 'Analyzing soil dynamics...' };
-    const cond = current.weather[0].main;
-    const temp = current.main.temp;
-    
-    if (cond === 'Rain' || cond === 'Thunderstorm' || cond === 'Drizzle') {
-      return { title: 'NO WATERING NEEDED', desc: 'Atmospheric moisture is high. Natural rain detected.' };
-    }
-    if (temp >= 32) {
-      return { title: 'HEAVY WATERING', desc: 'High temperatures detected. Increase core watering volume.' };
-    }
-    return { title: 'LIGHT WATERING', desc: 'Variables are extremely stable. Maintain regular schedule.' };
-  };
+  // ── Derive rain%, compute advice, and log to Firestore ─────────
+  const rain = currentWeather
+    ? rainProbabilityFromCode(currentWeather.weather[0].id)
+    : 20;
 
-  if (isLoading || !currentWeather) {
+  const irrigAdvice = currentWeather
+    ? getIrrigationAdvice({
+        rain,
+        temp:      currentWeather.main.temp,
+        humidity:  currentWeather.main.humidity,
+        windSpeed: currentWeather.wind.speed,
+      })
+    : { advice: 'Awaiting weather data...', urgency: 'low', reason: '' };
+
+  const irrigCard = getIrrigationCardConfig(rain, currentWeather?.weather[0]?.main);
+
+  // Log weather + irrigation advice to Firestore once per successful fetch
+  useEffect(() => {
+    if (currentWeather) {
+      const snapshot = {
+        temp:      currentWeather.main.temp,
+        humidity:  currentWeather.main.humidity,
+        windSpeed: currentWeather.wind.speed,
+        condition: currentWeather.weather[0].main,
+        city:      currentWeather.name,
+        rain,
+      };
+      saveWeatherLog(snapshot).catch(() => {});
+      saveIrrigationLog({ ...irrigAdvice, city: currentWeather.name }).catch(() => {});
+    }
+  }, [currentWeather?.dt]); // Only re-run when the timestamp changes (new fetch)
+
+  if (isLoading) {
     return (
       <SafeAreaView style={[styles.safe, {justifyContent: 'center', alignItems: 'center'}]}>
         <ActivityIndicator size="large" color="#1565C0" />
-        <Text style={{color: '#666', marginTop: 10}}>{isLoading ? 'Locating farm...' : 'Loading real-time weather...'}</Text>
+        <Text style={{color: '#666', marginTop: 10}}>Locating farm and fetching weather...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (!currentWeather) {
+    return (
+      <SafeAreaView style={[styles.safe, {justifyContent: 'center', alignItems: 'center', padding: 24}]}>
+        <Text style={{fontSize: 36, marginBottom: 12}}>⛅</Text>
+        <Text style={{fontSize: 15, fontWeight: '700', color: '#263238', marginBottom: 6}}>Weather Unavailable</Text>
+        <Text style={{fontSize: 12, color: '#546E7A', textAlign: 'center', marginBottom: 20}}>
+          Could not fetch weather data. Check your internet connection and Flask backend.
+        </Text>
+        <TouchableOpacity
+          onPress={() => refetch()}
+          style={{backgroundColor: '#1565C0', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 22}}
+        >
+          <Text style={{color: '#fff', fontSize: 13, fontWeight: '700'}}>↻ Retry</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     );
   }
@@ -146,8 +168,9 @@ export default function WeatherScreen() {
               <Text style={{ fontSize: 24 }}>💧</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.alertTitle}>{t('recommendation')}: {getIrrigationAdvice(currentWeather).title}</Text>
-              <Text style={styles.alertDesc}>{getIrrigationAdvice(currentWeather).desc}</Text>
+              <Text style={styles.alertTitle}>{irrigCard.title}</Text>
+              <Text style={styles.alertDesc}>{irrigAdvice.advice}</Text>
+              {irrigAdvice.reason ? <Text style={[styles.alertDesc, { marginTop: 4, opacity: 0.85 }]}>{irrigAdvice.reason}</Text> : null}
             </View>
           </View>
 

@@ -72,6 +72,12 @@ export default function AIScreen() {
     const [isLoading, setIsLoading] = useState(false);
     const flatListRef = useRef(null);
 
+    // Save chat helper — defined first so translation effect can reference it
+    const saveMessages = useCallback((msgs) => {
+        setMessages(msgs);
+        AsyncStorage.setItem('kisan_chat_history', JSON.stringify(msgs.slice(-50)));
+    }, []);
+
     // Load persisted chat on mount
     useEffect(() => {
         AsyncStorage.getItem('kisan_chat_history').then(saved => {
@@ -89,39 +95,30 @@ export default function AIScreen() {
             if (prevLang.current === language) return;
             prevLang.current = language;
 
-            // Extract current state without adding it to dependency array
+            // Extract current state snapshot without adding to dep array
             let currentMsgs = [];
             setMessages(prev => { currentMsgs = prev; return prev; });
 
             if (currentMsgs.length === 0) return;
 
-            // If it's just the fresh welcome message, we don't need 
-            // the backend API, we just refresh the local key!
+            // Welcome-only history: just refresh the local string key — no API call needed
             if (currentMsgs.length === 1 && currentMsgs[0].id === 'welcome') {
-                const refreshed = [{ ...currentMsgs[0], text: t("aiWelcomeMessage") }];
-                saveMessages(refreshed);
+                saveMessages([{ ...currentMsgs[0], text: t('aiWelcomeMessage') }]);
                 return;
             }
 
-            // Real conversational history requires deep-translator
+            // Real conversational history: call deep-translator backend
             setIsLoading(true);
             const texts = currentMsgs.map(m => m.text);
             const translated = await translateChat(texts, language);
-            
+
             if (translated && translated.length === currentMsgs.length) {
-                const newMsgs = currentMsgs.map((m, idx) => ({ ...m, text: translated[idx] }));
-                saveMessages(newMsgs);
+                saveMessages(currentMsgs.map((m, idx) => ({ ...m, text: translated[idx] })));
             }
             setIsLoading(false);
         };
         translateActiveChat();
     }, [language, t, saveMessages]);
-
-    // Save chat on every new message
-    const saveMessages = useCallback((msgs) => {
-        setMessages(msgs);
-        AsyncStorage.setItem('kisan_chat_history', JSON.stringify(msgs.slice(-50))); // Keep last 50
-    }, []);
 
     const clearChat = () => {
         const welcome = [{ id: "welcome", role: "bot", text: t("aiWelcomeMessage") }];

@@ -250,9 +250,11 @@ def validate_on_local_data(hf_model, processor, dataset_path, local_to_hf, local
             outputs  = hf_model(pixel_values=batch_imgs)
             logits   = outputs.logits                              # (B, 38)
 
-            # Project: for each sample, pick the logit at the HF index
-            # that corresponds to each local class, then argmax in local space
-            projected = logits[:, hf_indices_tensor]               # (B, num_local)
+            # FIX: softmax over all 38 HF outputs first (calibrated probabilities)
+            all_probs = F.softmax(logits, dim=1)                   # (B, 38)
+
+            # Then slice the calibrated probability at each local class's HF index
+            projected = all_probs[:, hf_indices_tensor]            # (B, num_local)
             preds     = projected.argmax(dim=1)                    # (B,)
 
             correct += (preds == batch_labels).sum().item()
@@ -330,54 +332,91 @@ Import this in your Flask route that handles disease prediction.
 Usage:
     from inference_helper import load_model, predict
 
-    model, processor, local_to_hf, local_classes = load_model(PTH_PATH)
-    disease, confidence = predict(model, processor, local_to_hf,
-                                  local_classes, image_path_or_pil)
+    model, processor, valid_pairs, local_classes = load_model(PTH_PATH)
+    results = predict(model, processor, valid_pairs, local_classes, image_path_or_pil)
+    # results -> list of (class_name, confidence_pct) sorted desc, filtered by threshold
 """
 import torch
 import torch.nn.functional as F
 from transformers import AutoImageProcessor, AutoModelForImageClassification
-from PIL import Image
+from PIL import Image, ImageEnhance, ImageFilter
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
+# Confidence thresholds (must match disease_vision_engine.py)
+DISEASE_THRESHOLD = 0.65
+HEALTHY_THRESHOLD = 0.75
+MARGIN_THRESHOLD  = 0.15
+
+
+def _preprocess_mobile(img):
+    """Boost contrast, sharpen, and center-crop to match PlantVillage distribution."""
+    img = ImageEnhance.Contrast(img).enhance(1.25)
+    img = img.filter(ImageFilter.SHARPEN)
+    w, h = img.size
+    mw, mh = int(w * 0.10), int(h * 0.10)
+    return img.crop((mw, mh, w - mw, h - mh))
+
+
 def load_model(pth_path):
-    checkpoint = torch.load(pth_path, map_location=DEVICE)
-    model = AutoModelForImageClassification.from_pretrained(
-        checkpoint["hf_model_id"]
-    )
+    checkpoint    = torch.load(pth_path, map_location=DEVICE)
+    model         = AutoModelForImageClassification.from_pretrained(checkpoint["hf_model_id"])
     model.load_state_dict(checkpoint["model_state_dict"])
     model.to(DEVICE).eval()
-    processor    = AutoImageProcessor.from_pretrained(checkpoint["hf_model_id"])
-    local_to_hf  = checkpoint["local_to_hf"]
+    processor     = AutoImageProcessor.from_pretrained(checkpoint["hf_model_id"])
     local_classes = checkpoint["local_classes"]
-    return model, processor, local_to_hf, local_classes
+    raw_map       = checkpoint["local_to_hf"]
+    # Build filtered valid pairs — exclude unmatched labels (hf_idx == -1)
+    valid_pairs = [
+        (i, raw_map.get(i, raw_map.get(str(i), -1)))
+        for i in range(len(local_classes))
+        if raw_map.get(i, raw_map.get(str(i), -1)) >= 0
+    ]
+    return model, processor, valid_pairs, local_classes
 
-def predict(model, processor, local_to_hf, local_classes, image_input, top_k=3):
+
+def predict(model, processor, valid_pairs, local_classes, image_input, top_k=3):
     """
-    image_input: file path (str) or PIL Image
-    Returns list of (class_name, confidence_percent) sorted by confidence desc.
+    image_input : file path (str) or PIL Image.
+    Returns     : list of (class_name, confidence_pct) — only entries above threshold.
     """
     if isinstance(image_input, str):
         img = Image.open(image_input).convert("RGB")
     else:
         img = image_input.convert("RGB")
 
+    img     = _preprocess_mobile(img)
     inputs  = processor(images=img, return_tensors="pt").to(DEVICE)
+
     with torch.no_grad():
         logits = model(**inputs).logits          # (1, 38)
 
-    num_local = len(local_classes)
-    hf_indices = [local_to_hf.get(i, 0) for i in range(num_local)]
-    hf_tensor  = torch.tensor(hf_indices, device=DEVICE)
-    projected  = logits[0, hf_tensor]           # (num_local,)
-    probs      = F.softmax(projected, dim=0)
+    # Softmax over all 38 HF outputs first (calibrated probabilities)
+    all_probs   = F.softmax(logits[0], dim=0)    # (38,)
 
-    top_indices = probs.topk(min(top_k, num_local)).indices.tolist()
-    results = [
-        (local_classes[i], round(probs[i].item() * 100, 2))
-        for i in top_indices
-    ]
+    # Slice only valid local classes
+    local_idx_t = torch.tensor([p[0] for p in valid_pairs], device=DEVICE)
+    hf_idx_t    = torch.tensor([p[1] for p in valid_pairs], device=DEVICE)
+    local_probs = all_probs[hf_idx_t]            # (num_valid,)
+
+    # Top-K from valid local subset
+    k           = min(top_k, len(local_probs))
+    top_vals, top_pos = torch.topk(local_probs, k)
+
+    # Margin guard
+    margin = (top_vals[0] - top_vals[1]).item() if k > 1 else 1.0
+
+    results = []
+    for rank, (val, pos) in enumerate(zip(top_vals, top_pos)):
+        real_local = int(local_idx_t[pos].item())
+        name       = local_classes[real_local]
+        conf       = float(val.item())
+        is_healthy = "healthy" in name.lower()
+        threshold  = HEALTHY_THRESHOLD if is_healthy else DISEASE_THRESHOLD
+        # Only append if confidence and margin are acceptable
+        if conf >= threshold and (rank > 0 or margin >= MARGIN_THRESHOLD):
+            results.append((name, round(conf * 100, 2)))
+
     return results
 '''
 

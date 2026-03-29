@@ -34,6 +34,11 @@ export const FONTS = {
   regular:   'Inter_400Regular',
   medium:    'Inter_500Medium',
   bold:      'Inter_600SemiBold',
+  // API-Engineer aliases (used by EligibilityModal)
+  sans:      'Inter_400Regular',
+  sansMed:   'Inter_500Medium',
+  sansBold:  'Inter_600SemiBold',
+  sansExtra: 'Poppins_700Bold',
 };
 
 export const RADIUS = {

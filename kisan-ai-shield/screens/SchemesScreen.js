@@ -1,46 +1,63 @@
-import React, { useState, useContext, useEffect } from 'react';
+/**
+ * screens/SchemesScreen.js
+ * Production-grade Government Schemes Screen.
+ * Dual-mode: Browse all MASTER_SCHEMES (instant) + AI bulk eligibility check via Flask.
+ * Per-scheme 4-step eligibility wizard via EligibilityModal.
+ */
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, SafeAreaView, ActivityIndicator, Alert,
+  StyleSheet, SafeAreaView, ActivityIndicator, Alert, RefreshControl,
 } from 'react-native';
 import { COLORS, FONTS, RADIUS, SHADOW, SPACING } from '../constants/appTheme';
 import { shared } from '../constants/sharedStyles';
-import { fetchEligibleSchemes } from '../services/schemeService';
 import { LanguageContext } from '../context/LanguageContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { fetchSchemes, fetchEligibleSchemes, MASTER_SCHEMES } from '../services/schemeService';
+import EligibilityModal from '../components/EligibilityModal';
 
-const STATES = [
-  'Telangana', 'Andhra Pradesh', 'Maharashtra', 'Karnataka',
-  'Tamil Nadu', 'Madhya Pradesh', 'Uttar Pradesh', 'Rajasthan',
-  'Punjab', 'Gujarat', 'Bihar', 'West Bengal', 'Other',
-];
+// ── Constants ─────────────────────────────────────────────────────
+const FILTER_TABS = ['All', 'Insurance', 'Subsidies', 'Loans', 'General'];
+const STATES = ['Telangana', 'Andhra Pradesh', 'Maharashtra', 'Karnataka', 'Tamil Nadu', 'Madhya Pradesh', 'Other'];
 const CATEGORIES = ['General', 'OBC', 'SC', 'ST', 'Minority'];
 const CROPS = ['Rice', 'Wheat', 'Cotton', 'Maize', 'Tomato', 'Chilli', 'Soybean', 'Sugarcane', 'Groundnut', 'Other'];
-const IRRIGATION_TYPES = ['Rainfed', 'Canal', 'Borewell', 'Drip', 'Sprinkler', 'Mixed'];
 
-const TAG_COLORS = [
-  { bg: COLORS.green100, text: COLORS.green800 },
-  { bg: COLORS.blueBg, text: COLORS.blue },
-  { bg: COLORS.amberBg, text: COLORS.orange },
-  { bg: COLORS.purpleBg, text: COLORS.purple },
-];
+const CATEGORY_STYLE = {
+  Insurance: { bg: '#E3F2FD', text: '#1565C0' },
+  Subsidies: { bg: '#E8F5E9', text: '#2E7D32' },
+  Loans:     { bg: '#FFF3E0', text: '#E65100' },
+  Training:  { bg: '#F3E5F5', text: '#6A1B9A' },
+  General:   { bg: '#F5F5F5', text: '#424242' },
+};
 
 export default function SchemesScreen() {
   const { t, language } = useContext(LanguageContext);
-  const [showForm, setShowForm] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
-  const [schemes, setSchemes] = useState([]);
-  const [error, setError] = useState(null);
 
-  // Form state
-  const [name, setName] = useState('');
-  const [state, setState] = useState('');
+  // ── Browse mode state ─────────────────────────────────────────
+  const [allSchemes, setAllSchemes]   = useState(MASTER_SCHEMES); // instant load
+  const [filtered, setFiltered]       = useState(MASTER_SCHEMES);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState('All');
+  const [loadingSchemes, setLoadingSchemes] = useState(false);
+  const [refreshing, setRefreshing]   = useState(false);
+  const [dataSource, setDataSource]   = useState('master');
+
+  // ── Eligibility Modal ─────────────────────────────────────────
+  const [modalVisible, setModalVisible]   = useState(false);
+  const [selectedScheme, setSelectedScheme] = useState(null);
+
+  // ── AI Bulk Eligibility form state ────────────────────────────
+  const [showForm, setShowForm]   = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [eligibleSchemes, setEligibleSchemes] = useState([]);
+  const [formError, setFormError] = useState(null);
+  const [name, setName]           = useState('');
+  const [state, setState]         = useState('');
   const [landAcres, setLandAcres] = useState('');
-  const [crop, setCrop] = useState('');
-  const [category, setCategory] = useState('');
-  const [irrigation, setIrrigation] = useState('');
+  const [crop, setCrop]           = useState('');
+  const [category, setCategory]   = useState('');
 
-  // Load saved farmer profile on mount
+  // ── Load & persist farmer profile ─────────────────────────────
   useEffect(() => {
     AsyncStorage.getItem('kisan_farmer_profile').then(saved => {
       if (saved) {
@@ -51,44 +68,81 @@ export default function SchemesScreen() {
           if (p.landAcres) setLandAcres(p.landAcres);
           if (p.crop) setCrop(p.crop);
           if (p.category) setCategory(p.category);
-          if (p.irrigation) setIrrigation(p.irrigation);
-        } catch(e) {}
+        } catch (e) {}
       }
     });
   }, []);
 
-  // Save profile whenever a field changes
   useEffect(() => {
-    const profile = { name, state, landAcres, crop, category, irrigation };
-    AsyncStorage.setItem('kisan_farmer_profile', JSON.stringify(profile));
-  }, [name, state, landAcres, crop, category, irrigation]);
+    AsyncStorage.setItem('kisan_farmer_profile', JSON.stringify({ name, state, landAcres, crop, category }));
+  }, [name, state, landAcres, crop, category]);
 
-  const handleSubmit = async () => {
+  // ── Load schemes from Firestore/API ───────────────────────────
+  const loadSchemes = useCallback(async (force = false) => {
+    if (allSchemes.length === 0) setLoadingSchemes(true);
+    const { data, source } = await fetchSchemes(30, force);
+    setAllSchemes(data);
+    applyFilters(data, searchQuery, activeFilter);
+    setDataSource(source);
+    setLoadingSchemes(false);
+    setRefreshing(false);
+  }, [searchQuery, activeFilter]);
+
+  useEffect(() => { loadSchemes(); }, []);
+
+  const onRefresh = () => { setRefreshing(true); loadSchemes(true); };
+
+  // ── Filter & Search ───────────────────────────────────────────
+  const applyFilters = (schemes, query, filter) => {
+    let result = [...schemes];
+    if (filter !== 'All') {
+      result = result.filter(s => s.category === filter);
+    }
+    if (query.trim()) {
+      const q = query.toLowerCase();
+      result = result.filter(s =>
+        s.schemeName?.toLowerCase().includes(q) ||
+        s.description?.toLowerCase().includes(q) ||
+        s.ministry?.toLowerCase().includes(q) ||
+        s.benefits?.toLowerCase().includes(q) ||
+        s.state?.toLowerCase().includes(q)
+      );
+    }
+    setFiltered(result);
+  };
+
+  const handleSearch = (text) => {
+    setSearchQuery(text);
+    applyFilters(allSchemes, text, activeFilter);
+  };
+
+  const handleFilter = (f) => {
+    setActiveFilter(f);
+    applyFilters(allSchemes, searchQuery, f);
+  };
+
+  // ── Open per-scheme eligibility modal ─────────────────────────
+  const openEligibilityCheck = (scheme) => {
+    setSelectedScheme(scheme);
+    setModalVisible(true);
+  };
+
+  // ── AI Bulk form submit ───────────────────────────────────────
+  const handleBulkSubmit = async () => {
     if (!name.trim() || !state || !landAcres.trim() || !crop || !category) {
-      Alert.alert('Missing Details', 'Please fill in all required fields marked with *');
+      Alert.alert('Missing Details', 'Please fill all required fields.');
       return;
     }
-    setIsLoading(true);
-    setError(null);
-    setShowForm(false);
-
-    const profile = {
-      name: name.trim(),
-      state,
-      land_acres: landAcres.trim(),
-      crop,
-      category,
-      irrigation: irrigation || 'Unknown',
-      language: language, // Pass selected language to the API
-    };
-
+    setIsSubmitting(true);
+    setFormError(null);
+    const profile = { name: name.trim(), state, land_acres: landAcres, crop, category, language };
     const result = await fetchEligibleSchemes(profile);
-    setIsLoading(false);
-
+    setIsSubmitting(false);
     if (result.success) {
-      setSchemes(result.schemes);
+      setEligibleSchemes(result.schemes);
+      setShowForm(false);
     } else {
-      setError(result.error);
+      setFormError(result.error);
     }
   };
 
@@ -102,242 +156,285 @@ export default function SchemesScreen() {
             style={[styles.chip, selected === opt && styles.chipActive]}
             onPress={() => onSelect(opt)}
           >
-            <Text style={[styles.chipText, selected === opt && styles.chipTextActive]}>
-              {opt}
-            </Text>
+            <Text style={[styles.chipText, selected === opt && styles.chipTextActive]}>{opt}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
     </View>
   );
 
+  const srcBadge = dataSource === 'live' ? '● LIVE'
+    : dataSource === 'cache' ? '📦 CACHED'
+    : '🗃 MASTER';
+
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView showsVerticalScrollIndicator={false}>
 
-        {/* ── Header ── */}
-        <View style={styles.header}>
-          <Text style={styles.cloudBg}>🏛</Text>
-          <Text style={styles.pageTitle}>{t('schemesTitle')}</Text>
-          <Text style={styles.pageSub}>{t('findSchemes')}</Text>
-          {!showForm && schemes.length > 0 && (
-            <View style={styles.eligRow}>
-              <Text style={styles.eligText}>✅ {schemes.length} schemes found for you</Text>
-            </View>
+      {/* ── HEADER ── */}
+      <View style={styles.header}>
+        <Text style={styles.pageTitle}>{t('schemesTitle') || 'Govt Schemes'}</Text>
+        <Text style={styles.pageSub}>Agricultural Benefits & Subsidies</Text>
+
+        {/* Search bar */}
+        <View style={styles.searchContainer}>
+          <Text style={{ fontSize: 16, marginRight: 8 }}>🔍</Text>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search schemes, ministry, state..."
+            placeholderTextColor={COLORS.gray400}
+            value={searchQuery}
+            onChangeText={handleSearch}
+          />
+          {searchQuery !== '' && (
+            <TouchableOpacity onPress={() => handleSearch('')}>
+              <Text style={styles.clearIcon}>✕</Text>
+            </TouchableOpacity>
           )}
         </View>
+      </View>
 
-        <View style={styles.content}>
-
-          {/* ── FARMER PROFILE FORM ── */}
-          {showForm && (
-            <View style={styles.formCard}>
-              <Text style={styles.formTitle}>{t('farmerProfile')}</Text>
-              <Text style={styles.formDesc}>
-                {t('findSchemes')}
-              </Text>
-
-              <View style={styles.fieldBlock}>
-                <Text style={styles.fieldLabel}>{t('fullName')}</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="e.g. Ravi Kumar"
-                  placeholderTextColor={COLORS.gray300}
-                  value={name}
-                  onChangeText={setName}
-                />
-              </View>
-
-              <ChipSelector label={t('stateLabel')} options={STATES} selected={state} onSelect={setState} />
-
-              <View style={styles.fieldBlock}>
-                <Text style={styles.fieldLabel}>{t('landSize')}</Text>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="e.g. 2.5"
-                  placeholderTextColor={COLORS.gray300}
-                  value={landAcres}
-                  onChangeText={setLandAcres}
-                  keyboardType="numeric"
-                />
-              </View>
-
-              <ChipSelector label={t('primaryCrop')} options={CROPS} selected={crop} onSelect={setCrop} />
-              <ChipSelector label="Category *" options={CATEGORIES} selected={category} onSelect={setCategory} />
-              <ChipSelector label="Irrigation Type" options={IRRIGATION_TYPES} selected={irrigation} onSelect={setIrrigation} />
-
-              <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} activeOpacity={0.85}>
-                <Text style={styles.submitBtnText}>{t('findEligible')}</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* ── LOADING ── */}
-          {isLoading && (
-            <View style={styles.loadingState}>
-              <ActivityIndicator size="large" color={COLORS.green800} />
-              <Text style={styles.loadingText}>{t('aiTyping')}</Text>
-            </View>
-          )}
-
-          {/* ── ERROR ── */}
-          {error && (
-            <View style={styles.errorCard}>
-              <Text style={{ fontSize: 24 }}>⚠️</Text>
-              <Text style={styles.errorText}>{error}</Text>
-              <TouchableOpacity style={styles.retryBtn} onPress={() => { setShowForm(true); setError(null); }}>
-                <Text style={styles.retryText}>← Edit Profile & Retry</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* ── RESULTS ── */}
-          {!showForm && !isLoading && schemes.length > 0 && (
-            <>
-              <TouchableOpacity style={styles.editProfileBtn} onPress={() => setShowForm(true)}>
-                <Text style={styles.editProfileText}>{t('editProfile')}</Text>
-              </TouchableOpacity>
-
-              {schemes.map((s, i) => (
-                <View key={i} style={styles.schemeCard}>
-                  <View style={styles.scTop}>
-                    <View style={[styles.scIcon, { backgroundColor: TAG_COLORS[i % TAG_COLORS.length].bg }]}>
-                      <Text style={{ fontSize: 22 }}>
-                        {['🌾', '🛡', '⚡', '🏦', '🌊'][i % 5]}
-                      </Text>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.scName}>{s.name}</Text>
-                      {s.ministry ? <Text style={styles.scMinistry}>{s.ministry}</Text> : null}
-                    </View>
-                  </View>
-
-                  <View style={styles.scTags}>
-                    {s.benefit ? (
-                      <View style={[styles.scTag, { backgroundColor: TAG_COLORS[i % TAG_COLORS.length].bg }]}>
-                        <Text style={[styles.scTagText, { color: TAG_COLORS[i % TAG_COLORS.length].text }]}>
-                          {s.benefit}
-                        </Text>
-                      </View>
-                    ) : null}
-                    {s.amount ? (
-                      <View style={[styles.scTag, { backgroundColor: COLORS.green100 }]}>
-                        <Text style={[styles.scTagText, { color: COLORS.green800 }]}>{s.amount}</Text>
-                      </View>
-                    ) : null}
-                  </View>
-
-                  {s.desc ? <Text style={styles.scDesc}>{s.desc}</Text> : null}
-                </View>
-              ))}
-            </>
-          )}
-
-          {!showForm && !isLoading && schemes.length === 0 && !error && (
-            <View style={styles.emptyState}>
-              <Text style={{ fontSize: 32 }}>🔍</Text>
-              <Text style={styles.emptyText}>No schemes found. Try adjusting your profile.</Text>
-              <TouchableOpacity style={styles.retryBtn} onPress={() => setShowForm(true)}>
-                <Text style={styles.retryText}>← Edit Profile</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-        </View>
+      {/* ── FILTER TABS ── */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}
+        style={styles.filterRow} contentContainerStyle={{ paddingRight: 20 }}>
+        {FILTER_TABS.map((f, i) => (
+          <TouchableOpacity
+            key={i}
+            style={[styles.filterChip, activeFilter === f && styles.filterChipActive]}
+            onPress={() => handleFilter(f)}
+          >
+            <Text style={[styles.filterText, activeFilter === f && styles.filterTextActive]}>{f}</Text>
+          </TouchableOpacity>
+        ))}
+        {/* AI Eligibility button */}
+        <TouchableOpacity
+          style={[styles.filterChip, { backgroundColor: '#4A148C', borderColor: '#4A148C' }]}
+          onPress={() => setShowForm(!showForm)}
+        >
+          <Text style={[styles.filterText, { color: '#fff' }]}>🤖 AI Check</Text>
+        </TouchableOpacity>
       </ScrollView>
+
+      {/* ── MAIN SCROLL AREA ── */}
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.green800} />}
+      >
+        {/* Status row */}
+        <View style={styles.statusRow}>
+          <Text style={styles.resultCount}>{filtered.length} schemes identified</Text>
+          <View style={[styles.sourceBadge, dataSource === 'live' ? styles.sourceLive : styles.sourceCached]}>
+            <Text style={styles.sourceText}>{srcBadge}</Text>
+          </View>
+        </View>
+
+        {/* ── AI BULK FORM ── */}
+        {showForm && (
+          <View style={styles.formCard}>
+            <Text style={styles.formTitle}>🤖 AI Eligibility Check</Text>
+            <Text style={styles.formDesc}>Enter your details to find ALL schemes you qualify for via AI</Text>
+
+            <View style={styles.fieldBlock}>
+              <Text style={styles.fieldLabel}>Full Name *</Text>
+              <TextInput style={styles.textInput} placeholder="e.g. Ravi Kumar"
+                placeholderTextColor={COLORS.gray300} value={name} onChangeText={setName} />
+            </View>
+
+            <ChipSelector label="State *" options={STATES} selected={state} onSelect={setState} />
+            <View style={styles.fieldBlock}>
+              <Text style={styles.fieldLabel}>Land Size (acres) *</Text>
+              <TextInput style={styles.textInput} placeholder="e.g. 2.5" keyboardType="numeric"
+                placeholderTextColor={COLORS.gray300} value={landAcres} onChangeText={setLandAcres} />
+            </View>
+            <ChipSelector label="Primary Crop *" options={CROPS} selected={crop} onSelect={setCrop} />
+            <ChipSelector label="Category *" options={CATEGORIES} selected={category} onSelect={setCategory} />
+
+            <TouchableOpacity style={styles.submitBtn} onPress={handleBulkSubmit} disabled={isSubmitting}>
+              {isSubmitting
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Text style={styles.submitBtnText}>{t('findEligible') || 'Find Eligible Schemes →'}</Text>
+              }
+            </TouchableOpacity>
+            {formError && <Text style={styles.errorText}>{formError}</Text>}
+
+            {/* AI Results */}
+            {eligibleSchemes.length > 0 && (
+              <View style={{ marginTop: 16 }}>
+                <Text style={styles.aiResultTitle}>✅ {eligibleSchemes.length} schemes found by AI</Text>
+                {eligibleSchemes.map((s, i) => (
+                  <View key={i} style={styles.aiResultCard}>
+                    <Text style={styles.aiResultName}>{s.name}</Text>
+                    {s.benefit && <Text style={styles.aiResultBenefit}>{s.benefit}</Text>}
+                    {s.desc && <Text style={styles.aiResultDesc}>{s.desc}</Text>}
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* ── LOADING ── */}
+        {loadingSchemes && !refreshing && (
+          <ActivityIndicator size="large" color={COLORS.green800} style={{ marginTop: 40 }} />
+        )}
+
+        {/* ── SCHEMES LIST ── */}
+        {!loadingSchemes && filtered.map((s, i) => {
+          const cat = CATEGORY_STYLE[s.category] || CATEGORY_STYLE.General;
+          return (
+            <View key={s.id || i} style={styles.schemeCard}>
+              <View style={styles.schemeTagRow}>
+                <View style={[styles.categoryTag, { backgroundColor: cat.bg }]}>
+                  <Text style={[styles.categoryTagText, { color: cat.text }]}>{s.category?.toUpperCase()}</Text>
+                </View>
+                <View style={[styles.stateBadge, { backgroundColor: s.state === 'Central' ? '#E3F2FD' : '#E8F5E9' }]}>
+                  <Text style={[styles.stateBadgeText, { color: s.state === 'Central' ? '#1565C0' : '#2E7D32' }]}>
+                    {s.badge || s.state}
+                  </Text>
+                </View>
+              </View>
+
+              <Text style={styles.schemeName}>{s.schemeName}</Text>
+              <Text style={styles.schemeMinistry}>🏛 {s.ministry}</Text>
+              <Text style={styles.schemeDesc} numberOfLines={3}>{s.description}</Text>
+
+              {s.tagline && (
+                <View style={styles.taglineBox}>
+                  <Text style={styles.taglineText}>✦ {s.tagline}</Text>
+                </View>
+              )}
+
+              <TouchableOpacity
+                style={styles.eligibilityBtn}
+                onPress={() => openEligibilityCheck(s)}
+              >
+                <Text style={styles.eligibilityBtnText}>Check My Eligibility →</Text>
+              </TouchableOpacity>
+            </View>
+          );
+        })}
+
+        {/* ── EMPTY STATE ── */}
+        {!loadingSchemes && filtered.length === 0 && (
+          <View style={styles.emptyState}>
+            <Text style={{ fontSize: 40, marginBottom: 10 }}>🔎</Text>
+            <Text style={styles.emptyText}>No matching schemes found.</Text>
+            <TouchableOpacity onPress={() => { handleFilter('All'); handleSearch(''); }}>
+              <Text style={{ color: COLORS.green800, fontFamily: FONTS.bodyBold, marginTop: 12 }}>
+                Clear all filters
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+
+      {/* ── ELIGIBILITY MODAL ── */}
+      <EligibilityModal
+        visible={modalVisible}
+        scheme={selectedScheme}
+        onClose={() => { setModalVisible(false); setSelectedScheme(null); }}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: shared.safe,
+  safe: { ...shared.safe },
   header: {
     backgroundColor: '#4A148C',
-    paddingHorizontal: 20, paddingTop: 16, paddingBottom: 24,
-    overflow: 'hidden',
+    paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20,
   },
-  cloudBg: { position: 'absolute', top: 10, right: 16, fontSize: 60, opacity: 0.15 },
   pageTitle: shared.pageTitle,
   pageSub: shared.pageSub,
-  eligRow: {
-    backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 20,
-    paddingHorizontal: 12, paddingVertical: 5, alignSelf: 'flex-start',
-  },
-  eligText: { color: '#fff', fontSize: 11, fontWeight: '600' },
-
-  content: shared.content,
-
-  // ── Form ──
-  formCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: RADIUS.xl,
-    padding: 16,
+  searchContainer: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: COLORS.white, borderRadius: RADIUS.lg,
+    paddingHorizontal: 12, marginTop: 16, height: 46,
     ...SHADOW.card,
+  },
+  searchInput: { flex: 1, fontFamily: FONTS.bodyMed, fontSize: 14, color: COLORS.gray800 },
+  clearIcon: { fontSize: 16, color: COLORS.gray600, padding: 4 },
+
+  filterRow: { paddingVertical: 12, paddingLeft: 16, borderBottomWidth: 1, borderBottomColor: COLORS.gray100 },
+  filterChip: {
+    backgroundColor: COLORS.white, borderRadius: 20,
+    paddingHorizontal: 16, paddingVertical: 8, marginRight: 8,
     borderWidth: 1.5, borderColor: COLORS.gray100,
   },
-  formTitle: { fontSize: 17, fontFamily: FONTS.headingXl, color: COLORS.gray800, marginBottom: 4 },
-  formDesc: { fontSize: 12, color: COLORS.gray800, marginBottom: SPACING.lg, lineHeight: 18, fontFamily: FONTS.body },
-  fieldBlock: { marginBottom: 14 },
+  filterChipActive: { backgroundColor: COLORS.green800, borderColor: COLORS.green800 },
+  filterText: { fontFamily: FONTS.bodyBold, fontSize: 12, color: COLORS.gray600 },
+  filterTextActive: { color: COLORS.white },
+
+  content: { flex: 1, paddingHorizontal: 16 },
+
+  statusRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 12 },
+  resultCount: { fontFamily: FONTS.bodyBold, fontSize: 11, color: COLORS.gray600 },
+  sourceBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  sourceLive: { backgroundColor: COLORS.green100 },
+  sourceCached: { backgroundColor: '#F0F3F6' },
+  sourceText: { fontFamily: FONTS.bodyBold, fontSize: 9, color: '#444' },
+
+  // ── AI FORM ──
+  formCard: {
+    backgroundColor: COLORS.white, borderRadius: RADIUS.xl,
+    padding: 16, marginBottom: 16, ...SHADOW.card,
+    borderWidth: 1.5, borderColor: '#CE93D8',
+  },
+  formTitle: { fontSize: 16, fontFamily: FONTS.headingXl || FONTS.bodyBold, color: '#4A148C', marginBottom: 4 },
+  formDesc: { fontSize: 12, color: COLORS.gray600, fontFamily: FONTS.body, marginBottom: 12, lineHeight: 18 },
+  fieldBlock: { marginBottom: 12 },
   fieldLabel: { fontSize: 12, fontFamily: FONTS.bodyBold, color: COLORS.gray800, marginBottom: 6 },
   textInput: {
     backgroundColor: COLORS.gray100, borderRadius: RADIUS.sm,
     paddingHorizontal: 14, paddingVertical: 10,
-    fontSize: 13, color: COLORS.gray800, fontWeight: '500',
+    fontSize: 13, color: COLORS.gray800, fontFamily: FONTS.bodyMed,
   },
   chip: {
     paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20,
-    backgroundColor: COLORS.white, borderWidth: 1.5, borderColor: COLORS.gray100,
-    marginRight: 8,
+    backgroundColor: COLORS.white, borderWidth: 1.5, borderColor: COLORS.gray100, marginRight: 8,
   },
   chipActive: { backgroundColor: '#4A148C', borderColor: '#4A148C' },
-  chipText: { fontSize: 12, fontFamily: FONTS.bodySemi, color: COLORS.gray600 },
+  chipText: { fontSize: 12, fontFamily: FONTS.bodySemi || FONTS.bodyMed, color: COLORS.gray600 },
   chipTextActive: { color: '#fff' },
   submitBtn: {
     backgroundColor: COLORS.green800, borderRadius: RADIUS.sm,
-    paddingVertical: 14, alignItems: 'center', marginTop: SPACING.sm,
+    paddingVertical: 14, alignItems: 'center', marginTop: 8,
   },
   submitBtnText: { color: '#fff', fontSize: 15, fontFamily: FONTS.bodyBold },
-
-  // ── Loading ──
-  loadingState: { alignItems: 'center', paddingVertical: 60, gap: SPACING.md },
-  loadingText: { fontSize: 15, fontFamily: FONTS.bodyBold, color: COLORS.gray800 },
-  loadingSub: { fontSize: 11, color: COLORS.gray600, fontFamily: FONTS.body },
-
-  // ── Error ──
-  errorCard: {
-    alignItems: 'center', backgroundColor: COLORS.redBg,
-    borderRadius: RADIUS.lg, padding: SPACING.xl, gap: 10,
+  errorText: { fontSize: 12, color: COLORS.red, marginTop: 8, fontFamily: FONTS.bodyMed, textAlign: 'center' },
+  aiResultTitle: { fontFamily: FONTS.bodyBold, fontSize: 13, color: COLORS.green800, marginBottom: 10 },
+  aiResultCard: {
+    backgroundColor: COLORS.green50, borderRadius: RADIUS.md,
+    padding: 12, marginBottom: 8, borderLeftWidth: 3, borderLeftColor: COLORS.green800,
   },
-  errorText: { fontSize: 13, color: COLORS.red, textAlign: 'center', fontFamily: FONTS.bodyMed },
+  aiResultName: { fontFamily: FONTS.bodyBold, fontSize: 13, color: COLORS.gray800, marginBottom: 2 },
+  aiResultBenefit: { fontFamily: FONTS.bodySemi || FONTS.bodyMed, fontSize: 11, color: COLORS.green800, marginBottom: 4 },
+  aiResultDesc: { fontFamily: FONTS.body, fontSize: 11, color: COLORS.gray600, lineHeight: 16 },
 
-  // ── Results ──
-  editProfileBtn: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(74,20,140,0.1)', borderRadius: 20,
-    paddingHorizontal: 14, paddingVertical: 7, marginBottom: 14,
-  },
-  editProfileText: { fontSize: 11, fontFamily: FONTS.bodySemi, color: '#4A148C' },
-
+  // ── SCHEME CARDS ──
   schemeCard: {
     backgroundColor: COLORS.white, borderRadius: RADIUS.xl,
-    padding: 14, marginBottom: SPACING.md, ...SHADOW.card,
-    borderWidth: 1.5, borderColor: COLORS.gray100,
+    padding: 20, marginBottom: 14, ...SHADOW.card,
   },
-  scTop: { flexDirection: 'row', gap: 10, marginBottom: 10, alignItems: 'flex-start' },
-  scIcon: { width: 46, height: 46, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  scName: { fontSize: 14, fontFamily: FONTS.headingXl, color: COLORS.gray800, lineHeight: 20 },
-  scMinistry: { fontSize: 11, color: COLORS.gray800, fontFamily: FONTS.bodyMed, marginTop: 2 },
-  scTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: SPACING.sm },
-  scTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 },
-  scTagText: { fontSize: 10, fontFamily: FONTS.bodyBold },
-  scDesc: { fontSize: 12, color: COLORS.gray800, lineHeight: 18, fontFamily: FONTS.bodyMed },
+  schemeTagRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  categoryTag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  categoryTagText: { fontFamily: FONTS.bodyBold, fontSize: 9 },
+  stateBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  stateBadgeText: { fontFamily: FONTS.bodyBold, fontSize: 9 },
+  schemeName: { fontFamily: FONTS.headingXl || FONTS.bodyBold, fontSize: 16, color: COLORS.gray800, marginBottom: 4 },
+  schemeMinistry: { fontFamily: FONTS.bodyBold, fontSize: 11, color: COLORS.gray600, marginBottom: 8 },
+  schemeDesc: { fontFamily: FONTS.body, fontSize: 13, color: COLORS.gray600, lineHeight: 20, marginBottom: 10 },
+  taglineBox: { backgroundColor: COLORS.green50, borderRadius: 8, padding: 8, marginBottom: 12 },
+  taglineText: { fontFamily: FONTS.bodySemi || FONTS.bodyMed, fontSize: 12, color: COLORS.green800, fontStyle: 'italic' },
+  eligibilityBtn: {
+    backgroundColor: COLORS.green100, paddingVertical: 14,
+    borderRadius: RADIUS.lg, alignItems: 'center',
+  },
+  eligibilityBtnText: { fontFamily: FONTS.bodyBold, fontSize: 13, color: COLORS.green800 },
 
-  // ── Empty / Retry ──
-  emptyState: { alignItems: 'center', paddingVertical: 40, gap: 10 },
-  emptyText: { fontSize: 14, color: COLORS.gray800, fontFamily: FONTS.bodyMed, textAlign: 'center' },
-  retryBtn: {
-    backgroundColor: COLORS.green100, borderRadius: 20,
-    paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm, marginTop: SPACING.sm,
-  },
-  retryText: { fontSize: 12, fontFamily: FONTS.bodySemi, color: COLORS.green800 },
+  // ── EMPTY ──
+  emptyState: { alignItems: 'center', paddingTop: 60 },
+  emptyText: { fontFamily: FONTS.bodyMed, fontSize: 14, color: COLORS.gray600 },
 });
